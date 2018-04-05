@@ -1,4 +1,5 @@
-import pandas as pd
+# I really can't wait for the day where I can just use gits to do my work
+# import pandas as pd
 
 reader=pd.read_table('mini_trace.txt',sep=";",chunksize=5, header = None)
 dftrace = reader.get_chunk()
