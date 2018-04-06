@@ -22,7 +22,7 @@ def LatLongConv(GPS_str):
 	a = rx.findall(GPS_str)
 	lat1 = round(float(a[0]),6)
 	long1 = round(float(a[1]),6)
-	return lat1, long1
+	return tuple([lat1, long1])
 
 
 def haversine_pc(lon1,lat1,lon2,lat2):
@@ -42,12 +42,15 @@ def Position_From_Datum(latlong_tuple):
 #	DatumLat = 41.890251
 	DatumLat = RTGV.DatumLat
 	DatumLong = RTGV.DatumLong
-	
+#if type(latlong_tuple)==tuple:
 	lat1 = latlong_tuple[0]
 	lon1 = latlong_tuple[1]
-	
-	x = round(haversine_pc(lon1,DatumLat,DatumLong,DatumLat),2)
-	y = round(haversine_pc(DatumLong,lat1,DatumLong,DatumLat),2)
+#	else:
+#		lat1 = latlong_tuple
+#		lon1 = latlong_tuple
+		
+	x = round(haversine_pc(lon1,DatumLat,DatumLong,DatumLat)) # ,2)
+	y = round(haversine_pc(DatumLong,lat1,DatumLong,DatumLat)) #,2)
 
 	if lat1-DatumLat<0:
 	#Implies point is South of Datum
@@ -55,7 +58,7 @@ def Position_From_Datum(latlong_tuple):
 	if lon1-DatumLong<0:
 	#Implies point is WEST of Datum
 		y=-y
-	return x,y
+	return tuple([int(x),int(y)])
 
 if __name__=='__main__':
 

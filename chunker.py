@@ -1,5 +1,9 @@
 # I really can't wait for the day where I can just use gits to do my work
 # GLOBAL variables: datum position, start of simulation.... 
+# note, nrows = sum(1 for _ in open('/home/pdawg/Old/Rome/all_rome_taxi_february.txt'))
+# nrows = 21817851 #(3*11*17*38891)
+# http://pandas-docs.github.io/pandas-docs-travis/io.html#iterating-through-files-chunk-by-chunk
+
 
 
 import pandas as pd
@@ -17,28 +21,50 @@ import RomeTaxiGlobalVars
 #DatumLong = 12.492373
 #DatumLat = 41.890251
 
-#Obtain Chunk of Data from text file
-reader=pd.read_table('mini_trace.txt',sep=";",chunksize=5, header = None)
-
-dftrace = reader.get_chunk()
-dftrace.columns = ['taxi_id','ts','gps']
-
 #Setup Processed DataFrame with columns etc...
 new_dfcols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','LatLong','xy_pos']
 new_dftrace = pd.DataFrame(columns=new_dfcols)
+new_dftrace.to_csv('big_trace.csv', header=new_dfcols, index = True, sep=";")
 
-#TaxID
-new_dftrace['taxi_id'] = dftrace['taxi_id']
+#Obtain Chunk of Data from text file
+raw_trace_data_filename = '/home/pdawg/Old/Rome/all_rome_taxi_february.txt' #'trace100.txt'
+reader=pd.read_table(raw_trace_data_filename,sep=";",chunksize=10000 ,header = None, iterator=True)
 
-#TimeStamp post-processing
-new_dftrace['ts_dt'] = dftrace['ts'].apply(tsconv.PyTimeConv)
-new_dftrace['sim_t'] = new_dftrace['ts_dt'].apply(tsconv.SimTimeSeconds)
-new_dftrace['sim_day_num'] = new_dftrace['ts_dt'].apply(tsconv.SimDayNum)
-new_dftrace['weekday_num'] = new_dftrace['ts_dt'].apply(tsconv.SimWeekDayNum)
+for chunk in reader:
+	
+	#new_dfcols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','LatLong','xy_pos']
+	#new_dftrace = pd.DataFrame(columns=new_dfcols)
+	new_dftrace = pd.DataFrame()
+	
+	dftrace = chunk # reader.get_chunk()
+	dftrace.columns = ['taxi_id','ts','gps']
+	
+		#TaxID
+	new_dftrace['taxi_id'] = dftrace['taxi_id']
 
-#GPS/Position Post-processing
-new_dftrace['LatLong'] = dftrace['gps'].apply(xyconv.LatLongConv)
-new_dftrace['xy_pos'] = new_dftrace['LatLong'].apply(xyconv.Position_From_Datum)
+	#TimeStamp post-processing
+	new_dftrace['ts_dt'] = dftrace['ts'].apply(tsconv.PyTimeConv)
+	new_dftrace['sim_t'] = new_dftrace['ts_dt'].apply(tsconv.SimTimeSeconds)
+	new_dftrace['sim_day_num'] = new_dftrace['ts_dt'].apply(tsconv.SimDayNum)
+	new_dftrace['weekday_num'] = new_dftrace['ts_dt'].apply(tsconv.SimWeekDayNum)
+
+	#GPS/Position Post-processing
+	new_dftrace['LatLong'] = dftrace['gps'].apply(xyconv.LatLongConv)
+	new_dftrace['xy_pos'] = new_dftrace['LatLong'].apply(xyconv.Position_From_Datum)
+
+# SO CLOSE!!! need to maybe have an 'initial csv file, with headers etc... then keep appending..., avoid having headers every chunk!
+	new_dftrace.to_csv('big_trace.csv', mode='a', index = True, sep=";",header=False)
+	
+
+
+
+
+
+#import dask.dataframe as dd
+#ddf = dd.read_csv('/home/pdawg/Old/Rome/all_rome_taxi_february.txt')
+#ddf.columns = ['taxi_id','ts','gps']
+#daskdf = dd.read_csv('/home/pdawg/RomeTaxiData/mini_trace.txt')
+#dftrace = daskdf
 
 
 

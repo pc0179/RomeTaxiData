@@ -10,8 +10,11 @@ sim_start_time = DT.datetime.strptime(RTGV.sim_start_time, '%Y-%m-%d %H:%M:%S')
 
 def PyTimeConv(csv_time):
 	chopped_csv_time = csv_time[:-3]
-	py_time_ms = DT.datetime.strptime(chopped_csv_time,'%Y-%m-%d %H:%M:%S.%f')
-	py_time = RoundTimeSeconds(py_time_ms)
+	if len(chopped_csv_time)<20:
+		py_time = DT.datetime.strptime(chopped_csv_time,'%Y-%m-%d %H:%M:%S')
+	else:
+		py_time_ms = DT.datetime.strptime(chopped_csv_time,'%Y-%m-%d %H:%M:%S.%f')
+		py_time = RoundTimeSeconds(py_time_ms)
 	return py_time
 
 def RoundTimeSeconds(some_DT_obj):
@@ -42,7 +45,7 @@ def SimWeekDayNum(some_DT_obj):
 def SimTimeSeconds(some_DT_obj):
 	global sim_start_time
 	sim_time_s = (some_DT_obj-sim_start_time).total_seconds()
-	return sim_time_s
+	return int(sim_time_s)
 
 # in terms of all things related to time, we should end with the following:
 # actual_time (datetime obj), sim_time in seconds, sim_time in days, weekday number...
