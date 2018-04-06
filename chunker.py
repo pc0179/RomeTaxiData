@@ -1,17 +1,28 @@
 # I really can't wait for the day where I can just use gits to do my work
-# import pandas as pd
+
+import pandas as pd
+import timestamp_conv  as tsconv
 
 reader=pd.read_table('mini_trace.txt',sep=";",chunksize=5, header = None)
+
 dftrace = reader.get_chunk()
+dftrace.columns = ['taxi_id','ts','gps']
+# TimeStamp Pre-processing
 
-list_id = list(dftrace[0])
-list_ts = list(dftrace[1])
-list_gps = list(dftrace[2])
+b = dftrace['ts'].apply(tsconv.PyTimeConv)
 
-import PyTimeConv as tsconv
-b = []
-for i in range(len(list_ts)):
-	b.append(tsconv.PyTimeConv(list_ts[i]))
+
+
+
+
+#list_id = list(dftrace[0])
+#list_ts = list(dftrace[1])
+#list_gps = list(dftrace[2])
+
+#import PyTimeConv as tsconv
+#b = []
+#for i in range(len(list_ts)):
+#	b.append(tsconv.PyTimeConv(list_ts[i]))
 
 #Okay, doing well, sofar.... 
 #Need to make the loop above faster/more efficient.
