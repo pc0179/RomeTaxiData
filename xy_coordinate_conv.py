@@ -2,13 +2,14 @@
 # 41.890251 (lat)
 # 12.492373 (long)
 
-DatumLong = 12.492373
-DatumLat = 41.890251
+#DatumLong = 12.492373
+#DatumLat = 41.890251
 
 GPS_str = "POINT(41.8967831636848 12.4821987021152)"
 
 import numpy as np
 import re
+import RomeTaxiGlobalVars as RTGV
 
 #rx.findall("Some example: Jr. it. was .23 between 2.3 and 42.31 seconds")
 # maybe this section needs to go to the end, calc cartesian using full digits? then save just the most sig. figs 6ish for table
@@ -35,7 +36,16 @@ def haversine_pc(lon1,lat1,lon2,lat2):
 
 
 
-def Position_From_Datum(lon1, lat1, DatumLong, DatumLat):
+def Position_From_Datum(latlong_tuple):
+#	if DatumLong== None  & DatumLat == None:
+#	DatumLong = 12.492373
+#	DatumLat = 41.890251
+	DatumLat = RTGV.DatumLat
+	DatumLong = RTGV.DatumLong
+	
+	lat1 = latlong_tuple[0]
+	lon1 = latlong_tuple[1]
+	
 	x = round(haversine_pc(lon1,DatumLat,DatumLong,DatumLat),2)
 	y = round(haversine_pc(DatumLong,lat1,DatumLong,DatumLat),2)
 
