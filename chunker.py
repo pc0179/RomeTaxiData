@@ -22,13 +22,15 @@ import RomeTaxiGlobalVars
 #DatumLat = 41.890251
 
 #Setup Processed DataFrame with columns etc...
-new_dfcols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','LatLong','xy_pos']
+#new_dfcols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','LatLong','xy_pos']
+
+new_dfcols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','Lat','Long','x','y']
 new_dftrace = pd.DataFrame(columns=new_dfcols)
-new_dftrace.to_csv('big_trace.csv', header=new_dfcols, index = True, sep=";")
+new_dftrace.to_csv('test_trace.csv', header=new_dfcols, index = True, sep=";")
 
 #Obtain Chunk of Data from text file
-raw_trace_data_filename = '/home/pdawg/Old/Rome/all_rome_taxi_february.txt' #'trace100.txt'
-reader=pd.read_table(raw_trace_data_filename,sep=";",chunksize=10000 ,header = None, iterator=True)
+raw_trace_data_filename = '/home/pdawg/RomeTaxiData/medium_raw_taxi_trace.csv' # all_rome_taxi_february.txt' #'trace100.txt'
+reader=pd.read_table(raw_trace_data_filename,sep=";",chunksize=500 ,header = None, iterator=True)
 
 for chunk in reader:
 	
@@ -49,11 +51,16 @@ for chunk in reader:
 	new_dftrace['weekday_num'] = new_dftrace['ts_dt'].apply(tsconv.SimWeekDayNum)
 
 	#GPS/Position Post-processing
-	new_dftrace['LatLong'] = dftrace['gps'].apply(xyconv.LatLongConv)
-	new_dftrace['xy_pos'] = new_dftrace['LatLong'].apply(xyconv.Position_From_Datum)
+	#new_dftrace['LatLong'] = dftrace['gps'].apply(xyconv.LatLongConv)
+	#new_dftrace['xy_pos'] = new_dftrace['LatLong'].apply(xyconv.Position_From_Datum) 
+	new_dftrace['Lat'] = dftrace['gps'].apply(xyconv.LatConv2)
+	new_dftrace['Long'] = dftrace['gps'].apply(xyconv.LongConv2)
+	new_dftrace['x'] = new_dftrace.apply(lambda x: xyconv.XPos_From_Datum2( x['Lat'],x['Long']), axis=1, raw=True)
+	new_dftrace['y'] = new_dftrace.apply(lambda x: xyconv.YPos_From_Datum2( x['Lat'], x['Long']), axis=1, raw=True)
+	
 
 # SO CLOSE!!! need to maybe have an 'initial csv file, with headers etc... then keep appending..., avoid having headers every chunk!
-	new_dftrace.to_csv('big_trace.csv', mode='a', index = True, sep=";",header=False)
+	new_dftrace.to_csv('test_trace.csv', mode='a', index = True, sep=";",header=False)
 	
 
 

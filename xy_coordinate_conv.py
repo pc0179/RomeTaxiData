@@ -25,6 +25,21 @@ def LatLongConv(GPS_str):
 	return tuple([lat1, long1])
 
 
+def LatConv2(GPS_str):
+	numeric_const_pattern = '[-+]? (?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?'
+	rx = re.compile(numeric_const_pattern, re.VERBOSE)
+	a = rx.findall(GPS_str)
+	lat1 = round(float(a[0]),6)
+	return lat1
+
+def LongConv2(GPS_str):
+	numeric_const_pattern = '[-+]? (?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?'
+	rx = re.compile(numeric_const_pattern, re.VERBOSE)
+	a = rx.findall(GPS_str)
+	long1 = round(float(a[1]),6)
+	return long1
+
+	
 def haversine_pc(lon1,lat1,lon2,lat2):
 	lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
 	dlon = lon2-lon1
@@ -35,7 +50,26 @@ def haversine_pc(lon1,lat1,lon2,lat2):
 	return Hdistance
 
 
+def XPos_From_Datum2(Lat1,Long1):
+	DatumLat = RTGV.DatumLat
+	DatumLong = RTGV.DatumLong
+	
+	x = round(haversine_pc(Long1,DatumLat,DatumLong,DatumLat)) # ,2)
+	if Lat1-DatumLat<0:
+		#Implies point is South of Datum
+		x=-x
+	return x
 
+def YPos_From_Datum2(Lat1,Long1):
+	DatumLat = RTGV.DatumLat
+	DatumLong = RTGV.DatumLong	
+	y = round(haversine_pc(DatumLong,Lat1,DatumLong,DatumLat)) #,2)
+	if Long1-DatumLong<0:
+	#Implies point is WEST of Datum
+		y=-y
+	return y
+
+	
 def Position_From_Datum(latlong_tuple):
 #	if DatumLong== None  & DatumLat == None:
 #	DatumLong = 12.492373
