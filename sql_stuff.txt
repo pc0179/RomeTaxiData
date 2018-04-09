@@ -1,0 +1,22 @@
+cheat sheet:
+https://www.cheatography.com/guslong/cheat-sheets/essential-mysql/pdf_bw/
+general useful stuff:
+https://www.digitalocean.com/community/tutorials/a-basic-mysql-tutorial
+
+
+open mysql:
+mysql -u root -p
+
+create a semi-useful table:
+CREATE TABLE test_trace (taxi_id SMALLINT, ts_dt DATETIME, sim_t MEDIUMINT, sim_day_num SMALLINT, weekday_num SMALLINT, Lat1 DECIMAL(8,6), Long1 DECIMAL(8,6), x SMALLINT, y SMALLINT);
+
+importing stuff from csv...
+mysqlimport --ignore-lines=1 --fields-terminated-by=';' --local -u root -p rometaxi /home/pdawg/RomeTaxiData/test_trace.csv
+*** note that table name must for some reason match file.csv name ***
+
+to view top end of table (10 rows):
+SELECT * FROM test_trace LIMIT 10;
+
+
+
+

@@ -24,9 +24,9 @@ import RomeTaxiGlobalVars
 #Setup Processed DataFrame with columns etc...
 #new_dfcols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','LatLong','xy_pos']
 
-new_dfcols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','Lat','Long','x','y']
+new_dfcols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','Lat1','Long1','x','y']
 new_dftrace = pd.DataFrame(columns=new_dfcols)
-new_dftrace.to_csv('test_trace.csv', header=new_dfcols, index = True, sep=";")
+new_dftrace.to_csv('test_trace.csv', header=new_dfcols, index = False, sep=";")
 
 #Obtain Chunk of Data from text file
 raw_trace_data_filename = '/home/pdawg/RomeTaxiData/medium_raw_taxi_trace.csv' # all_rome_taxi_february.txt' #'trace100.txt'
@@ -60,7 +60,7 @@ for chunk in reader:
 	
 
 # SO CLOSE!!! need to maybe have an 'initial csv file, with headers etc... then keep appending..., avoid having headers every chunk!
-	new_dftrace.to_csv('test_trace.csv', mode='a', index = True, sep=";",header=False)
+	new_dftrace.to_csv('test_trace.csv', mode='a', index = False, sep=";",header=False)
 	
 
 
