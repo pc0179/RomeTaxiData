@@ -1,0 +1,20 @@
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-16-04
+
+
+sudo -i -u postgres
+psql
+
+database name = remus
+
+
+
+
+creating table for rome csv data:
+CREATE TABLE remus (taxi_id SMALLINT, ts_dt TIMESTAMP, sim_t INTEGER, sim_day_num SMALLINT, weekday_num SMALLINT, Lat1 DECIMAL(8,6), Long1 DECIMAL(8,6), x SMALLINT, y SMALLINT);
+
+copying, from TMP file only for some reason (with user as postgres)
+COPY remus FROM '/tmp/test_trace.csv' DELIMITER ';' CSV HEADER;
+
+
+quiting:
+\q

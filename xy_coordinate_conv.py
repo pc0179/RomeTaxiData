@@ -58,7 +58,7 @@ def XPos_From_Datum2(Lat1,Long1):
 	if Lat1-DatumLat<0:
 		#Implies point is South of Datum
 		x=-x
-	return x
+	return int(x)
 
 def YPos_From_Datum2(Lat1,Long1):
 	DatumLat = RTGV.DatumLat
@@ -67,7 +67,7 @@ def YPos_From_Datum2(Lat1,Long1):
 	if Long1-DatumLong<0:
 	#Implies point is WEST of Datum
 		y=-y
-	return y
+	return int(y)
 
 	
 def Position_From_Datum(latlong_tuple):
