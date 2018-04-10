@@ -26,11 +26,15 @@ import RomeTaxiGlobalVars
 
 new_dfcols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','Lat1','Long1','x','y']
 new_dftrace = pd.DataFrame(columns=new_dfcols)
-new_dftrace.to_csv('test_trace.csv', header=new_dfcols, index = False, sep=";")
+
+#outputfile
+output_trace_file = '/home/pdawg/RomeTaxiData/OUTput_tail_test_trace.csv'
+new_dftrace.to_csv(output_trace_file, header=new_dfcols, index = False, sep=";")
 
 #Obtain Chunk of Data from text file
-raw_trace_data_filename = '/home/pdawg/RomeTaxiData/medium_raw_taxi_trace.csv' # all_rome_taxi_february.txt' #'trace100.txt'
-reader=pd.read_table(raw_trace_data_filename,sep=";",chunksize=500 ,header = None, iterator=True)
+raw_trace_data_filename = '/home/pdawg/RomeTaxiData/tail_end_taxi_trace.csv' # '/media/pdawg/3733-3066/taxi_february.txt' # all_rome_taxi_february.txt' #'trace100.txt'
+
+reader=pd.read_table(raw_trace_data_filename,sep=";",chunksize=1000 ,header = None, iterator=True)
 
 for chunk in reader:
 	
@@ -60,7 +64,7 @@ for chunk in reader:
 	
 
 # SO CLOSE!!! need to maybe have an 'initial csv file, with headers etc... then keep appending..., avoid having headers every chunk!
-	new_dftrace.to_csv('test_trace.csv', mode='a', index = False, sep=";",header=False)
+	new_dftrace.to_csv(output_trace_file, mode='a', index = False, sep=";",header=False)
 	
 
 

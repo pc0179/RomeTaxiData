@@ -1,20 +1,24 @@
 https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-16-04
 
+to start:
+**note, that I have several random accounts (remus, p... etc on klara... will need to delete them eventually)
+** also note, that the user, pdawg and database, pdawg are the same/totally cool.
 
-sudo -i -u postgres
-psql
-
-database name = remus
-
-
+sudo -i -u pdawg psql
 
 
 creating table for rome csv data:
-CREATE TABLE remus (taxi_id SMALLINT, ts_dt TIMESTAMP, sim_t INTEGER, sim_day_num SMALLINT, weekday_num SMALLINT, Lat1 DECIMAL(8,6), Long1 DECIMAL(8,6), x SMALLINT, y SMALLINT);
+CREATE TABLE rometaxidata (taxi_id SMALLINT, ts_dt TIMESTAMP, sim_t INTEGER, sim_day_num SMALLINT, weekday_num SMALLINT, Lat1 DECIMAL(8,6), Long1 DECIMAL(8,6), x INTEGER, y INTEGER);
+
+**note, that some random points are like 30km out, ridonculus
+** table name  = rometaxidata
 
 copying, from TMP file only for some reason (with user as postgres)
-COPY remus FROM '/tmp/test_trace.csv' DELIMITER ';' CSV HEADER;
+COPY rometaxidata FROM '/tmp/test_trace.csv' DELIMITER ';' CSV HEADER;
 
 
 quiting:
 \q
+
+quering... with python3
+https://www.fullstackpython.com/blog/postgresql-python-3-psycopg2-ubuntu-1604.html
