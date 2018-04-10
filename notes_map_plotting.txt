@@ -1,0 +1,15 @@
+https://simonb83.github.io/making-a-map-in-matplotlib.html
+name of Rome OSM database: RomeMap
+all on klara of course
+
+pgsql2shp -f extracted_Roman_roads -h localhost -u pdawg RomeMap "SELECT osm_id, geom FROM roads
+WHERE fclass IN ('primary', 'secondary', 'motorway', 'residential')
+AND ST_Within(geom,
+ST_SetSRID(ST_GeomFromText('POLYGON((41.856 12.442, 41.928 12.5387, 41.928 12.442, 41.856 12.5387))'), 4326));"
+
+
+
+Rome Bounding Boxx:
+(41.856 12.442, 41.928 12.5387, 41.928 12.442, 41.856 12.5387)
+
+
