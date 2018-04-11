@@ -14,10 +14,11 @@ CREATE TABLE rometaxidata (taxi_id SMALLINT, ts_dt TIMESTAMP, sim_t INTEGER, sim
 ** table name  = rometaxidata
 
 copying, from TMP file only for some reason (with user as postgres)
-COPY rometaxidata FROM '/tmp/test_trace.csv' DELIMITER ';' CSV HEADER;
+COPY rometaxidata FROM '/tmp/output_trace.csv' DELIMITER ';' CSV HEADER;
 
+COPY rometaxidata FROM '/home/pdawg/Dropbox/rome_taxi_trace_data/output_trace.csv' DELIMITER ';' CSV HEADER;
 
-quiting:
+quit
 \q
 
 quering... with python3

@@ -30,3 +30,19 @@ when install basemap...
 https://peak5390.wordpress.com/2012/12/08/matplotlib-basemap-tutorial-installing-matplotlib-and-basemap/
 sudo apt-get install python3-mpltoolkits.basemap
 
+
+
+-----
+on the day... flyboi style coding...
+KLARAAAAAA!!!!!!!!!!!!!!
+
+pgsql2shp -f /home/pdawg/RomeOSMdata/extract/extracted_Roman_roads -h localhost -P postgres -u postgres romemap "SELECT osm_id, geom FROM roads
+WHERE fclass IN ('primary', 'secondary', 'motorway', 'residential')
+AND ST_Within(geom,
+ST_SetSRID(ST_GeomFromText('POLYGON((12.442 41.856, 12.442 41.928, 12.5387 41.928, 12.5387 41.856, 12.442 41.856))'), 4326));"
+
+to install basemap.. follow these instructions...
+https://matplotlib.org/basemap/users/installing.html
+
+also handy...
+sudo pip3 install --upgrade matplotlib
