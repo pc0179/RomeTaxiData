@@ -4,7 +4,7 @@ to start:
 **note, that I have several random accounts (remus, p... etc on klara... will need to delete them eventually)
 ** also note, that the user, pdawg and database, pdawg are the same/totally cool.
 
-sudo -i -u pdawg psql
+sudo -i -u pdawg psql dbname=...
 
 
 creating table for rome csv data:
@@ -22,3 +22,17 @@ quiting:
 
 quering... with python3
 https://www.fullstackpython.com/blog/postgresql-python-3-psycopg2-ubuntu-1604.html
+
+for importing large files.... could be useful...
+\lo_import FILE [comment?]
+
+\conninfo
+
+
+------
+when on the old NiGB
+sudo -u elizabeth psql
+\connect romemap   #name of the database with rome osm...
+boom.
+---
+On NiGB - elizabeth role now has a password, also elizabeth
