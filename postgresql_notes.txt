@@ -25,9 +25,14 @@ quering... with python3
 https://www.fullstackpython.com/blog/postgresql-python-3-psycopg2-ubuntu-1604.html
 
 for importing large files.... could be useful...
+this is only useful if importing say one entire image, essentially just saves the pointer address to the large file object
+(see https://www.postgresql.org/docs/9.2/static/app-psql.html)
 \lo_import FILE [comment?]
 
 \conninfo
+
+regarding index choice in postgresql
+https://devcenter.heroku.com/articles/postgresql-indexes
 
 
 ------
