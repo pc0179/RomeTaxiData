@@ -31,8 +31,7 @@ this is only useful if importing say one entire image, essentially just saves th
 
 \conninfo
 
-regarding index choice in postgresql
-https://devcenter.heroku.com/articles/postgresql-indexes
+
 
 
 ------
@@ -42,3 +41,14 @@ sudo -u elizabeth psql
 boom.
 ---
 On NiGB - elizabeth role now has a password, also elizabeth
+
+
+
+
+----- General discussion about speed-ups within psql database
+regarding index choice in postgresql
+https://devcenter.heroku.com/articles/postgresql-indexes
+partial indexes,
+could be useful in gridding Rome? using numpy array indexing... aids faster searching?
+CREATE INDEX articles_flagged_created_at_index ON articles(created_at) WHERE flagged IS TRUE;
+
