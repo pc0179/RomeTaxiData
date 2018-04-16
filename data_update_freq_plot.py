@@ -50,4 +50,3 @@ plt.scatter(x,y, 5, marker='*', color='red')
 plt.show()
 
 #plt.savefig('/home/pdawg/RomeTaxiData/rome_road_network.png')
-
