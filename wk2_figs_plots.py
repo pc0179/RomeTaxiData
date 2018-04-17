@@ -13,6 +13,7 @@ taxi_ids = pd.read_csv('/home/pdawg/RomeTaxiData/all_rome_taxi_ids.csv', header=
 list_taxi_ids = list(taxi_ids[0]) #I was bored and this seemed easier than figuring out exactly how pandas.iterrows() bullshit works
 
 connect_str = "dbname='taxitraces' user='postgres' host='localhost' password='postgres'"
+
 # quick reminder of available columns in database:
 # cols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','Lat1','Long1','x','y']
 
@@ -30,13 +31,15 @@ connect_str = "dbname='taxitraces' user='postgres' host='localhost' password='po
 #execution_str = "SELECT * FROM rometaxidata WHERE weekday_num = 0 AND taxi_id = 225"
 #execution_str = "SELECT DISTINCT taxi_id FROM rometaxidata"
 
-#connection = psycopg2.connect(connect_str)
+connection = psycopg2.connect(connect_str)
 
 #taxidf = pdsql.read_sql_query(execution_str,connection)
 
 #--------------------------------------------
 
 # Now for numero of taxis per day in sim...
+
+"""
 
 sim_day_num = list(range(27)) # for there are 28 days of taxi trace data
 connection = psycopg2.connect(connect_str)
@@ -61,20 +64,31 @@ plt.xlabel('Taxi Trace Day Number')
 plt.ylabel('Total number of taxis on duty')
 plt.show()
 
+"""
 
 # now number of taxis per hour...
 # SELECT COUNT(*) FROM (SELECT DISTINCT taxi_id FROM rometaxidata WHERE (sim_t BETWEEN 0 AND 3600)) AS foo;
-sim_times = list(range(0,60*60*24*27,60*60))
+sim_times = list(range(0,60*60*24*27,60*60)) #- everyhour of sim, 60*60s
 num_taxis_per_hour = []
+hour_counter = []
+
 for sim_t in sim_times:
 	#execution_str = ("SELECT COUNT(*) FROM (SELECT DISTINCT taxi_id FROM rometaxidata WHERE (sim_t BETWEEN %s AND %s)) AS foo" % (str(sim_t),str(sim_t+60*60)))
 	#execution_str = ("SELECT taxi_id, COUNT(*) AS number_taxis_on_duty FROM rometaxidata WHERE (sim_t BETWEEN %s AND %s) GROUP BY taxi_id" % (str(sim_t),str(sim_t+60*60)))
 	execution_str = ("SELECT COUNT(DISTINCT taxi_id) FROM rometaxidata WHERE (sim_t BETWEEN %s AND %s)" % (str(sim_t),str(sim_t+60*60)))
 	count_taxidf = pdsql.read_sql_query(execution_str,connection)
 	num_taxis_per_hour.append(int(count_taxidf['count']))
+	hour_counter.append(sim_t)
 	print(round((sim_t/sim_times[-1])*100))	
 
+
 np.savetxt("/home/pdawg/RomeTaxiData/taxi_count_per_hour.csv", num_taxis_per_hour, delimiter=",")
+
+df_taxis_hour = pd.DataFrame({"sim_t": hour_counter, "num_taxis": num_taxis_per_hour})
+df_taxis_hour.to_csv("/home/pdawg/RomeTaxiData/pd_taxi_count_per_hour.csv", index=False)
+
+
+
 
 """ SECTION for creating update frequency histogram/pdf/CDF
 
