@@ -27,12 +27,16 @@ import osrm
 
 #1. querying database
 
-connect_str = "dbname='rometaxitraces' user='postgres' host='localhost' password='postgres'"
+# connection string for working on c207: connect_str = "dbname='rometaxitraces' user='postgres' host='localhost' password='postgres'"
 
-taxi_ids = pd.read_csv('/home/user/RomeTaxiData/all_rome_taxi_ids.csv', header=None, sep="\n")
-list_taxi_ids = list(taxi_ids[0]) #I was bored and this seemed easier than figuring out exactly how pandas.iterrows() bullshit works
+# connection string for Klara:
+connect_str = "dbname='c207rometaxitraces' user='postgres' host='localhost' password='postgres'"
 
-osrm.RequestConfig.host = "http://localhost:5000"
+
+# taxi_ids = pd.read_csv('/home/user/RomeTaxiData/all_rome_taxi_ids.csv', header=None, sep="\n")
+# list_taxi_ids = list(taxi_ids[0]) #I was bored and this seemed easier than figuring out exactly how pandas.iterrows() bullshit works
+
+#osrm.RequestConfig.host = "http://localhost:5000"
 
 # quick reminder of available columns in database:
 # cols = ['taxi_id','ts_dt','sim_t','sim_day_num','weekday_num','Lat1','Long1','x','y','unix_ts']
@@ -50,21 +54,126 @@ osrm.RequestConfig.host = "http://localhost:5000"
 #execution_str = "SELECT * FROM rometaxidata WHERE sim_day_num = 10 AND (x BETWEEN -1000 AND 1000) AND (y BETWEEN -1000 AND 1000)" 
 #execution_str = "SELECT * FROM rometaxidata WHERE weekday_num = 0 AND taxi_id = 225"
 
+sim_day_num = 3
+
 connection = psycopg2.connect(connect_str)
 
-#execution_str = "SELECT DISTINCT taxi_id FROM rometaxidata"
+#execution_str = ("SELECT DISTINCT taxi_id FROM rometaxidata WHERE sim_day_num = %s" % (str(sim_day_num)))
+#taxi_ids = pdsql.read_sql_query(execution_str,connection)
 
-execution_str = "SELECT lat1,long1,unix_ts FROM rometaxidata WHERE taxi_id = 225"
+
+"""
+bunch of taxi ids on day 3
+129
+195
+106
+120
+285
+8
+264
+305
+318
+179
+209
+276
+"""
+taxi_id = 129 #129 #taxi_ids['taxi_id'][0]
+
+
+
+execution_str = ("SELECT unix_ts,lat1,long1 FROM rometaxidata WHERE (taxi_id = %s AND sim_day_num = %s)" % (str(taxi_id),str(sim_day_num)))
 
 taxidf = pdsql.read_sql_query(execution_str,connection)
 
+#mj_csv_header = ['time','latitude','longitude'] #,accuracy,bearing,speed
+#file_name = 'pc_loc_data.csv'
+#taxidf.to_csv(file_name, encoding='utf-8', index=False, header=mj_csv_header)
+
+
+#execution_str = ("SELECT lat1,long1,unix_ts FROM rometaxidata WHERE taxi_id = %s" % (str(taxi_id))
+
 #bear in mind... i might need to flip lats/longs order... hmmm....
+
+taxidf = taxidf.sort_values('unix_ts')
+
 gps_subset = taxidf[['long1','lat1']]
 gps_positions = [tuple(x) for x in gps_subset.values]
-search_radius = np.zeros_like(np.array(taxidf['unix_ts']))+10
+#search_radius = np.zeros_like(np.array(taxidf['unix_ts']))+10
 #time_stamps = taxidf['unix_ts']
 
-#search_radius = [20,20,20,20,20]
+
+#going back to shitty python wrapper:
+m = 0#50 #between 50-60 there is an error... the timestamps are not monotonically increasing.. need to sort this, jokes.
+n = 1260 #60 #900 #len(gps_subset) #1260
+
+mpmatched_points = osrm.match(gps_positions[m:n], overview="simplified", timestamps=taxidf['unix_ts'][m:n], radius=None)
+
+nobody_index = []
+matched_longitude = []
+matched_latitude = []
+matched_unix_ts = []
+
+matched_cols = ['taxi_id','day_num','unix_ts','mlatitude','mlongitude']
+
+for i in range(0,len(mpmatched_points['tracepoints'])):
+
+    if mpmatched_points['tracepoints'][i] is None:
+        nobody_index.append(i)
+    else:
+        matched_unix_ts.append(taxidf['unix_ts'][i])
+        matched_longitude.append(mpmatched_points['tracepoints'][i]['location'][0])
+        matched_latitude.append(mpmatched_points['tracepoints'][i]['location'][1])
+
+matched_taxi_id = np.ones_like(matched_unix_ts)*taxi_id
+matched_day_num = np.ones_like(matched_taxi_id)*sim_day_num
+matched_df = pd.DataFrame(np.column_stack([matched_taxi_id,matched_day_num,matched_unix_ts, matched_longitude, matched_latitude]), columns = matched_cols)
+
+matched_df.taxi_id = matched_df.taxi_id.astype(int)
+matched_df.day_num = matched_df.day_num.astype(int)
+matched_df.unix_ts = matched_df.unix_ts.astype(int)
+
+
+
+#con.execute('TRUNCATE matchedta ;')
+#df.to_sql('my_table', con, if_exists='append')
+
+connect_str2 = "dbname='matchedtaxitraces' user='postgres' host='localhost' password='postgres'"
+
+connection2 = psycopg2.connect(connect_str2)
+execution_str2 = ("TRUNCATE matchedtaxidata;")
+matched_df.to_sql(execution_str2,connection2)
+
+
+# code insert to postgres table, but first, set up table....
+
+#could numpy row stack, and write to database at the end of the 'sim_day_num'... would reduce some shiz...
+# similarily, I should import a days worth of traces, divide into unique taxi_ids, then iterate!
+
+
+
+
+
+''' my attempt...
+
+0. will need to sort out matched database table etc....
+this might mean care sigfigs etc... 
+
+1. load maybe 1GB a time from psql...
+	2. chunk it up, 
+	per chunk
+	- psql query (yeah it will be slower, deal with it.... lets get this nigger up and running,)
+	- map match: 1000 points? <-- look at above not regards 'gaps=false?'? maybe need to edit fucking pyosrm shit.
+	- convert results to
+			- pandas dataframe, with ['unix_ts','latitude','longitude'] <-- ORDER IS IMPORTANT BE CAREFUL.
+			- save 'overview=full' json file (although writing this out for everything coul be slooow)
+			or could I save this to yet another database... nah, easy, just save to disk in another directory
+			should have IterationNum,sim_day_num_taxi_id
+            - save pandas dataframe to new matched_db
+
+
+
+
+search_radius = [20,20,20,20,20]
 url0 = ['http://localhost:5000/match/v1/driving/']
 
 
@@ -73,8 +182,8 @@ url0 = ['http://localhost:5000/match/v1/driving/']
 overview = 'full'
 steps='false'
 geometry='polyline'
-gps_points2match = gps_positions #[500:505]
-timestamps = taxidf['unix_ts'] #[500:505]
+gps_points2match = gps_positions[500:1000]
+timestamps = taxidf['unix_ts'][500:1000]
 
 
 
@@ -94,7 +203,7 @@ url0.append(';'.join([','.join([str(ts)]) for ts in timestamps]))
 
 url1 = ''.join([url0[0],url0[1]])
 url1 = ''.join([url1,'?overview={}&steps={}&geometries={}'.format(overview,str(steps).lower(), geometry)])
-url1 = '&radiuses='.join([url1,url0[2]]) # bold.
+#url1 = '&radiuses='.join([url1,url0[2]]) # bold.
 url1 = '&timestamps='.join([url1,url0[3]])
 
 
@@ -103,14 +212,14 @@ url2txt_file = open("url2test.txt","w")
 url2txt_file.write(url1)
 url2txt_file.close()
 
-url2txt = np.array(url1
-url_filename = '/home/user/RomeTaxiData/url2test.txt'
-np.savetxt(url_filename,url2txt,fmt=str)
+#url2txt = np.array(url1
+#url_filename = '/home/user/RomeTaxiData/url2test.txt'
+#np.savetxt(url_filename,url2txt,fmt=str)
 
 
 #url = [host, '/match/', url_config.version, '/', url_config.profile, '/',';'.join([','.join([str(coord[0]), str(coord[1])]) for coord in points]),"?overview={}&steps={}&geometries={}".format(overview,str(steps).lower(), geometry)]
 
-#mpmatched_points = osrm.match(gps_positions[0:5], overview="full", timestamps=taxidf['unix_ts'][0:5], radius=search_radius[0:5])
+'''
 
 #mpmatched_points = osrm.match(gps_positions[0:5], overview="full", timestamps=taxidf['unix_ts'][0:5], radius =[10])
 
