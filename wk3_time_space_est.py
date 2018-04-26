@@ -30,7 +30,7 @@ import osrm
 # connection string for working on c207: connect_str = "dbname='rometaxitraces' user='postgres' host='localhost' password='postgres'"
 
 # connection string for Klara:
-connect_str = "dbname='c207rometaxitraces' user='postgres' host='localhost' password='postgres'"
+
 
 
 # taxi_ids = pd.read_csv('/home/user/RomeTaxiData/all_rome_taxi_ids.csv', header=None, sep="\n")
@@ -54,9 +54,6 @@ connect_str = "dbname='c207rometaxitraces' user='postgres' host='localhost' pass
 #execution_str = "SELECT * FROM rometaxidata WHERE sim_day_num = 10 AND (x BETWEEN -1000 AND 1000) AND (y BETWEEN -1000 AND 1000)" 
 #execution_str = "SELECT * FROM rometaxidata WHERE weekday_num = 0 AND taxi_id = 225"
 
-sim_day_num = 3
-
-connection = psycopg2.connect(connect_str)
 
 #execution_str = ("SELECT DISTINCT taxi_id FROM rometaxidata WHERE sim_day_num = %s" % (str(sim_day_num)))
 #taxi_ids = pdsql.read_sql_query(execution_str,connection)
@@ -77,71 +74,114 @@ bunch of taxi ids on day 3
 209
 276
 """
-taxi_id = 129 #129 #taxi_ids['taxi_id'][0]
 
 
 
-execution_str = ("SELECT unix_ts,lat1,long1 FROM rometaxidata WHERE (taxi_id = %s AND sim_day_num = %s)" % (str(taxi_id),str(sim_day_num)))
-
-taxidf = pdsql.read_sql_query(execution_str,connection)
-
-#mj_csv_header = ['time','latitude','longitude'] #,accuracy,bearing,speed
-#file_name = 'pc_loc_data.csv'
-#taxidf.to_csv(file_name, encoding='utf-8', index=False, header=mj_csv_header)
+#taxi_id = 129 #129 #taxi_ids['taxi_id'][0]
 
 
-#execution_str = ("SELECT lat1,long1,unix_ts FROM rometaxidata WHERE taxi_id = %s" % (str(taxi_id))
 
-#bear in mind... i might need to flip lats/longs order... hmmm....
+#execution_str = ("SELECT unix_ts,lat1,long1 FROM rometaxidata WHERE (taxi_id = %s AND sim_day_num = %s)" % (str(taxi_id),str(sim_day_num)))
 
-taxidf = taxidf.sort_values('unix_ts')
 
-gps_subset = taxidf[['long1','lat1']]
-gps_positions = [tuple(x) for x in gps_subset.values]
+connect_str = "dbname='c207rometaxitraces' user='postgres' host='localhost' password='postgres'"
+
+sim_day_num = 4
+
+connection = psycopg2.connect(connect_str)
+
+#connection = psycopg2.connect(connect_str)
+#1. get all taxi trace data for one day.
+
+
+
+# List unique values in a DataFrame column
+# h/t @makmanalp for the updated syntax!
+
+
+
+# Grab DataFrame rows where column has certain values
+#valuelist = ['value1', 'value2', 'value3']
+#df = df[df.column.isin(valuelist)]
+#0-13 completed, start again at 14
+for k in range(15,27):
+
+    sim_day_num = k
+    execution_str = ("SELECT taxi_id,unix_ts,lat1,long1 FROM rometaxidata WHERE sim_day_num =%s" % (str(sim_day_num)))
+    taxidf = pdsql.read_sql_query(execution_str,connection)
+    
+    taxi_IDs = list(taxidf['taxi_id'].unique())
+
+    # for each taxi_id that was working on that day number
+    for j in range(0,len(taxi_IDs)):
+
+                
+        trace_data2match = taxidf[taxidf['taxi_id']==taxi_IDs[j]]
+        trace_data2match = trace_data2match.drop_duplicates() 
+        
+        if len(trace_data2match)>1:
+            trace_data2match = trace_data2match.sort_values('unix_ts') #VERY IMPORTANT for osrm. big deal!
+                       
 #search_radius = np.zeros_like(np.array(taxidf['unix_ts']))+10
-#time_stamps = taxidf['unix_ts']
+            #time_stamps = taxidf['unix_ts']
+
+            #going back to shitty python wrapper:
+            #m = 0#50 #between 50-60 there is an error... the timestamps are not monotonically increasing.. need to sort this, jokes.
+            #n = 1260 #60 #900 #len(gps_subset) #1260
+            #mpmatched_points = osrm.match(gps_positions[m:n], overview="simplified", timestamps=taxidf['unix_ts'][m:n], radius=None)
+
+            #bear in mind... i might need to flip lats/longs order... hmmm....
+            gps_subset = trace_data2match[['long1','lat1']]
+            gps_positions = [tuple(x) for x in gps_subset.values]
+            mpmatched_points = osrm.match(gps_positions, overview="simplified", timestamps=trace_data2match['unix_ts'], radius=None)
+
+            nobody_index = []
+            matched_longitude = []
+            matched_latitude = []
+            matched_unix_ts = []
+
+            matched_cols = ['taxi_id','day_num','unix_ts','mlatitude','mlongitude']
+            # loop each  outputed point from the mapmatched trace (osrm), add correct timestampts,etc... build pandas dataframe
+            for i in range(0,len(mpmatched_points['tracepoints'])):
+
+                if mpmatched_points['tracepoints'][i] is None:
+                    nobody_index.append(i)
+                else:
+                    matched_unix_ts.append(taxidf['unix_ts'][i])
+                    matched_longitude.append(mpmatched_points['tracepoints'][i]['location'][1])
+                    matched_latitude.append(mpmatched_points['tracepoints'][i]['location'][0])
+
+            matched_taxi_id = np.ones_like(matched_unix_ts)*taxi_IDs[j]
+            matched_day_num = np.ones_like(matched_taxi_id)*sim_day_num
+            matched_df = pd.DataFrame(np.column_stack([matched_taxi_id,matched_day_num,matched_unix_ts, matched_longitude, matched_latitude]), columns = matched_cols)
+
+            matched_df.taxi_id = matched_df.taxi_id.astype(int)
+            matched_df.day_num = matched_df.day_num.astype(int)
+            matched_df.unix_ts = matched_df.unix_ts.astype(int)
 
 
-#going back to shitty python wrapper:
-m = 0#50 #between 50-60 there is an error... the timestamps are not monotonically increasing.. need to sort this, jokes.
-n = 1260 #60 #900 #len(gps_subset) #1260
+            if j>0:
+                    entire_day_matched_traces = pd.concat([entire_day_matched_traces, matched_df], axis=0, join='outer', join_axes=None, ignore_index=True,
+                      keys=None, levels=None, names=None, verify_integrity=False,
+                      copy=True)
+            else:
+                entire_day_matched_traces = matched_df
+        else:
+            fail = j
 
-mpmatched_points = osrm.match(gps_positions[m:n], overview="simplified", timestamps=taxidf['unix_ts'][m:n], radius=None)
-
-nobody_index = []
-matched_longitude = []
-matched_latitude = []
-matched_unix_ts = []
-
-matched_cols = ['taxi_id','day_num','unix_ts','mlatitude','mlongitude']
-
-for i in range(0,len(mpmatched_points['tracepoints'])):
-
-    if mpmatched_points['tracepoints'][i] is None:
-        nobody_index.append(i)
-    else:
-        matched_unix_ts.append(taxidf['unix_ts'][i])
-        matched_longitude.append(mpmatched_points['tracepoints'][i]['location'][0])
-        matched_latitude.append(mpmatched_points['tracepoints'][i]['location'][1])
-
-matched_taxi_id = np.ones_like(matched_unix_ts)*taxi_id
-matched_day_num = np.ones_like(matched_taxi_id)*sim_day_num
-matched_df = pd.DataFrame(np.column_stack([matched_taxi_id,matched_day_num,matched_unix_ts, matched_longitude, matched_latitude]), columns = matched_cols)
-
-matched_df.taxi_id = matched_df.taxi_id.astype(int)
-matched_df.day_num = matched_df.day_num.astype(int)
-matched_df.unix_ts = matched_df.unix_ts.astype(int)
-
+    #at the entire sim day level. K loop
+    file_name = ("/home/pdawg/Downloads/matched_traces/day_%s.csv" % (str(sim_day_num)))
+    entire_day_matched_traces.to_csv(file_name,sep=',',index=False)
 
 
 #con.execute('TRUNCATE matchedta ;')
 #df.to_sql('my_table', con, if_exists='append')
 
-connect_str2 = "dbname='matchedtaxitraces' user='postgres' host='localhost' password='postgres'"
+#connect_str2 = "dbname='matchedtaxitraces' user='postgres' host='localhost' password='postgres'"
 
-connection2 = psycopg2.connect(connect_str2)
-execution_str2 = ("TRUNCATE matchedtaxidata;")
-matched_df.to_sql(execution_str2,connection2)
+#connection2 = psycopg2.connect(connect_str2)
+#execution_str2 = ("TRUNCATE matchedtaxidata;") #really stupid code.
+#matched_df.to_sql(execution_str2,connection2)
 
 
 # code insert to postgres table, but first, set up table....
@@ -161,7 +201,7 @@ this might mean care sigfigs etc...
 1. load maybe 1GB a time from psql...
 	2. chunk it up, 
 	per chunk
-	- psql query (yeah it will be slower, deal with it.... lets get this nigger up and running,)
+	- psql query (yeah it will be slower, deal with it.... lets get this pig  up and running,)
 	- map match: 1000 points? <-- look at above not regards 'gaps=false?'? maybe need to edit fucking pyosrm shit.
 	- convert results to
 			- pandas dataframe, with ['unix_ts','latitude','longitude'] <-- ORDER IS IMPORTANT BE CAREFUL.
