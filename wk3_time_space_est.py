@@ -86,7 +86,7 @@ bunch of taxi ids on day 3
 
 connect_str = "dbname='c207rometaxitraces' user='postgres' host='localhost' password='postgres'"
 
-sim_day_num = 4
+#sim_day_num = 4
 
 connection = psycopg2.connect(connect_str)
 
