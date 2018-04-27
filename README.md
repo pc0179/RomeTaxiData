@@ -13,9 +13,9 @@ Given AVs are currently prohibitively expensive; a LIDAR unit still costs 20k-is
 In an attempt to estimate the feasibility of city wide mesh network of AVs, data from taxi traces across various cities is used. Taxi trace data is good fit for this problem since they are real trips made by paying customers, rather than sampling census data and assuming O-D tables given residency address and work address (which by the way still only explains half of trips made by humans, the other half is seemingly random, unless Alphabet releases some data). Furthermore, given the small ratio of passengers to driver; 1:5 is probably a best case scenario and potentially a tight squeeze, whereas buses or trains tend to achieve typical ratios of 1:50 or 1:1000s respectively, AVs therefore have greatest potential at reducing costs for taxi companies. AV taxis could potentially run 24-7 stopping mostly for fuel/re-charging and for cleaning of passenger quarters, after all most new vehicles now complete 100k km before needing serious maintanence/new parts.
 
 Currently publically available taxi **trace** datasets for taxis are:
-- [Rome] (https://crawdad.org/roma/taxi/20140717/) 
-- [San Francisco] (https://crawdad.org/epfl/mobility/20090224/)
-- [Shanghai] (claysonceles@dcc.ufmg.br) (maybe, emailed twice, no reply)
+- [Rome](https://crawdad.org/roma/taxi/20140717/) 
+- [San Francisco](https://crawdad.org/epfl/mobility/20090224/)
+- [Shanghai] (http://wirelesslab.sjtu.edu.cn/taxi_trace_data.html) (maybe, emailed twice, no reply)
 
 Available taxi **trip** datasets:
 - NYC
