@@ -1,6 +1,6 @@
 ## RomeTaxiData
 
-# Backgroud...
+# Background...
 
 Multiple studies look at how vehicles move in cities and their ability to communicate with one another (V2V) and with infrastructure such as base stations (V2I).
 
@@ -35,7 +35,7 @@ Available taxi **trip** datasets:
 
 1.a) Traces are messy/noisy, they need to be filtered and map-matched to nearest road segments. It is important to take into account driving routes rather than purely matching to nearest segment, as when roads are nearby (eg in parallel grid structures) it could lead to false turns/routes.
 
-1.b) Traces will need to *intelligently* interpolated. Since the distribution of position updates is not uniform (see [CDF update frequency plot](RomeTaxiData/cdf_frequency_rome_taxi_trace_updates.pdf)) nor is it particularly 'frequent'; 90% of GPS updates are every 20s)
+1.b) Traces will need to *intelligently* interpolated. Since the distribution of position updates is not uniform (see [CDF update frequency plot](cdf_frequency_rome_taxi_trace_updates.pdf)) nor is it particularly 'frequent'; 90% of GPS updates are every 20s)
 
 2. Line-of-Sight model needs to take into account bends/turns in the road network as well as being bounded by buldings (if present either side of the road)
 
