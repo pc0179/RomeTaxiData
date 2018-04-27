@@ -17,7 +17,7 @@ In an attempt to estimate the feasibility of city wide mesh network of AVs, data
 To evalute the feasibility of an autonomous vehicular mesh network as a potential means of private, decentralised delay tolerant communication system for a city.
 
 1. Analyse real taxi datasets where possible (see list below)
-2. Evaluate effectiveness by investigating the following params.:
+2. Evaluate effectiveness by investigating along the lines of the following params.:
     - Line-of-Sight distance between communicating taxis, how often does this happen? How does the communication capability of the mesh network of taxis vary in comparison to a less stringent communication model, such as simple 'disc' radius range
     - using LoS model, can pedestrians 'talk' to AVs? If so to what extent
     - back-end? assume traffic lights and intersection have boxes wired to 'the internet' can AVs off load data/requests there?
@@ -35,17 +35,22 @@ Available taxi **trip** datasets:
 
 1.a) Traces are messy/noisy, they need to be filtered and map-matched to nearest road segments. It is important to take into account driving routes rather than purely matching to nearest segment, as when roads are nearby (eg in parallel grid structures) it could lead to false turns/routes.
 
-1.b) Traces will need to *intelligently* interpolated. Since the distribution of position updates is not uniform (see [CDF update frequency plot](cdf_frequency_rome_taxi_trace_updates.pdf)) nor is it particularly 'frequent'; 90% of GPS updates are every 20s)
+1.b) Traces will need to *intelligently* interpolated. Since the distribution of position updates is not uniform (see [CDF update frequency plot](cdf_frequency_rome_taxi_trace_updates.pdf)) nor is it particularly 'frequent'; 90% of GPS updates are less than every ~20s, median~10s updates). To do this, map-matched positions of taxis will need to be interpolated along the driving segment before being divided into 1s chunks, which is likely to be the highest resolutions needed. Any further increases of resolutions are unlikely to yield bettr results whilst sacrificing computational efficiency/overall running time.
+
+1.c) In the case of trip-only datasets such as NYC, entire pseudo traces are likely to be needed. To do this properly a basic traffic model might be needed, in this case, a simple work-around could be to query Alphabets Google Maps service for a subset of trips, and save the typical times and routes suggested for different days of the week (since most vehicular traffic is weekly periodic (daily if you were to divide it into 'working' week-days and weekends).
 
 2. Line-of-Sight model needs to take into account bends/turns in the road network as well as being bounded by buldings (if present either side of the road)
 
-3. It is **very** likely that there simply aren't enough taxis that took part in either of the data gathering exercises to provide meaningful analysis. Therfore, *psuedo* taxis might be used, where several days (eg all tuesday's) could be combined to provide a more *realistic* fleet of taxis/connected AVs in order to evaluate feasibilty as well as getting an idea of critical mass required if such a system were to be implemented.
+3. It is **very** likely that there simply aren't enough taxis that took part in any of the data gathering exercises to provide meaningful analysis. Therfore, *psuedo* taxis might be used, where several days (eg all tuesday's) could be combined to provide a more *realistic* fleet of taxis/connected AVs in order to evaluate feasibilty as well as getting an idea of critical mass required if such a system were to be implemented.
 
 
 
-# Code
+# Brief Overview of Code
 *All code uses python3+ and postgres 9.5.12+*
-Global variables such as trace start time, datum location are saved in RomeTaxiGlovalVars
+*Routing engine = OSRM-backend*
+
+Global variables such as trace start time, datum location are saved in [RomeTaxiGlovalVars](RomeTaxiGlovalVars.py)
+
 In the rome taxi trace data, one finds the following 'columns' in the .csv data file:
 - taxiID
 - TimeStamp
