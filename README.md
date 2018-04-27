@@ -1,6 +1,6 @@
 ## RomeTaxiData
 
-# Quick Backgroud...
+# Backgroud...
 
 Multiple studies look at how vehicles move in cities and their ability to communicate with one another (V2V) and with infrastructure such as base stations (V2I).
 
@@ -10,32 +10,58 @@ Global vehicle ownership has only increased since 1960. Estimates made by Wards?
 
 Given AVs are currently prohibitively expensive; a LIDAR unit still costs 20k-ish, although this will likely decrease, AVs are likely to require multiple sensors to have suitable redudancy (just ask UBER, whose vehilce fitted with just one lidar unit killed a pedestrian, similarly Tesla inisists on having just one radar unit, their autopilot feature is responsible for two deaths so far...). Therefore, the inital market for AVs is most likely to be developed nations (such those comprising the EU/US) where an ageing population, high insurance and labour costs make AVs a potential solution for moving vulnerable road users a boon. AVs promises for reducing congestion might prove exagerated, afterall, if a certain amount of people want to get from A-B there's nothing you can do to elivate congestion, they will all end up sitting in traffic regards of whether a computer or human is driving. However, it does free up people's time and AVs could better platoon to save energy and driver closer to each other to increase volume of vehicles on the road. The latter claim is valid techincally but at the end of the day, 100 people on a double decker bus is still probaby the most efficient use of road space. 
 
-In an attempt to estimate the feasibility of city wide mesh network of AVs, data from taxi traces across various cities is used. Taxi trace data is good fit for this problem since they are real trips made by paying customers, rather than sampling census data and assuming O-D tables given residency address and work address (which by the way still only explains half of trips made by humans, the other half is seemingly random, unless Alphabet releases some data). Furthermore, given the small ratio of passengers to driver; 1:5 is probably a best case scenario and potentially a tight squeeze, whereas buses or trains tend to achieve typical ratios of 1:50 or 1:1000s respectively, AVs therefore have greatest potential at reducing costs for taxi companies. AV taxis could potentially run 24-7 stopping mostly for fuel/re-charging and for cleaning of passenger quarters, after all most new vehicles now complete 100k km before needing serious maintanence/new parts.
+In an attempt to estimate the feasibility of city wide mesh network of AVs, data from taxi traces across various cities was used. Taxi trace data is good fit for this problem since they are real trips made by real paying customers, rather than sampling census data and assuming O-D tables given residency address and work address (which by the way still only explains half of trips made by humans, the other half is seemingly random, unless Alphabet releases some data). Furthermore, given the small ratio of passengers to driver; 1:5 is probably a best case scenario and potentially a tight squeeze, whereas buses or trains tend to achieve typical ratios of 1:50 or 1:1000s respectively, AVs therefore have greatest potential at reducing costs for taxi companies. AV taxis could potentially run 24-7 stopping mostly for fuel/re-charging and for cleaning of passenger quarters, after all most new vehicles now complete 100k km before needing serious maintanence/new parts.
 
-Currently publically available taxi **trace** datasets for taxis are:
+# Aims/Objectives...
+
+To evalute the feasibility of an autonomous vehicular mesh network as a potential means of private, decentralised delay tolerant communication system for a city.
+
+1. Analyse real taxi datasets where possible (see list below)
+2. Evaluate effectiveness by investigating the following params.:
+    - Line-of-Sight distance between communicating taxis, how often does this happen? How does the communication capability of the mesh network of taxis vary in comparison to a less stringent communication model, such as simple 'disc' radius range
+    - using LoS model, can pedestrians 'talk' to AVs? If so to what extent
+    - back-end? assume traffic lights and intersection have boxes wired to 'the internet' can AVs off load data/requests there?
+    - Do city networks affect capability/feasibilty of system, compare for example classic radial vs grid road network structures
+    
+A brief (non-exhuastive list) of currently publically available taxi **trace** datasets are:
 - [Rome](https://crawdad.org/roma/taxi/20140717/) 
 - [San Francisco](https://crawdad.org/epfl/mobility/20090224/)
-- [Shanghai] (http://wirelesslab.sjtu.edu.cn/taxi_trace_data.html) (maybe, emailed twice, no reply)
+- [Shanghai](http://wirelesslab.sjtu.edu.cn/taxi_trace_data.html) (maybe, emailed twice, no reply)
 
 Available taxi **trip** datasets:
-- NYC
+- [NYC](http://www.nyc.gov/html/tlc/html/about/trip_record_data.shtml)
+
+# Problems to solve to achieve enlightenment
+
+1.a) Traces are messy/noisy, they need to be filtered and map-matched to nearest road segments. It is important to take into account driving routes rather than purely matching to nearest segment, as when roads are nearby (eg in parallel grid structures) it could lead to false turns/routes.
+
+1.b) Traces will need to *intelligently* interpolated. Since the distribution of position updates is not uniform (see [CDF update frequency plot](RomeTaxiData/cdf_frequency_rome_taxi_trace_updates.pdf)) nor is it particularly 'frequent'; 90% of GPS updates are every 20s)
+
+2. Line-of-Sight model needs to take into account bends/turns in the road network as well as being bounded by buldings (if present either side of the road)
+
+3. It is **very** likely that there simply aren't enough taxis that took part in either of the data gathering exercises to provide meaningful analysis. Therfore, *psuedo* taxis might be used, where several days (eg all tuesday's) could be combined to provide a more *realistic* fleet of taxis/connected AVs in order to evaluate feasibilty as well as getting an idea of critical mass required if such a system were to be implemented.
 
 
 
-
-
-We have the following 'columns' in data
+# Code
+*All code uses python3+ and postgres 9.5.12+*
+Global variables such as trace start time, datum location are saved in RomeTaxiGlovalVars
+In the rome taxi trace data, one finds the following 'columns' in the .csv data file:
 - taxiID
 - TimeStamp
 - GPS
 
-Converting TimeStamp to datetime obj, seconds since sim started, sim day num, weekday
-Converting GPS to shortened GPS (6 sig. figs.) and X,Y coordinate system based around the Colosseum in Rome.
+1. Exract/Transform:
+  - Timestamps to unix and datetime obj timestamps
+  - reduce GPS traces to 8 sig. figs (similar to accuracy used to build OSM and google maps)
+  - *"inteligent"* attributes such as day number, weekday number etc.. are added to aid lookup in PostgresDB
+  - copy all to giant .csv file, before importing to Posgtgres database (currently using version 9.5.12)
+  
+2. Cleaning:
+  - traces are quite literally *'all over da place'* hence need to map-match to nearest OSM street segment
+  - currently using OSRM as the back-end map-matching and routing engine
+  
 
-due to size of text file, 1.6GB
-aim to use data chunking to reduce memory overload
-final text file will be larger due to added fields
-aim to smash all this into a sql/postgis database...
 
-global variables such as sim start time, datum location are saved in RomeTaxiGlovalVars
+
 
