@@ -55,7 +55,7 @@ Available taxi **trip** datasets:
 
 # Problems to solve to achieve enlightenment
 
-1.GPS traces are messy/noisy, they need to be filtered and map-matched to nearest road segments. It is important to take into account driving routes rather than purely matching to nearest segment, as when roads are nearby (e.g. in parallel grid structures) it could lead to false turns/deviations from original route.
+1. GPS traces are messy/noisy, they need to be filtered and map-matched to nearest road segments. It is important to take into account driving routes rather than purely matching to nearest segment, as when roads are nearby (e.g. in parallel grid structures) it could lead to false turns/deviations from original route.
 
   - Traces will need to *intelligently* interpolated. Since the distribution of position updates is not uniform (see [CDF update frequency plot](cdf_frequency_rome_taxi_trace_updates.pdf)) nor is it particularly 'frequent'; 90% of GPS updates are less than every ~20s, median~10s updates). To do this, map-matched positions of taxis will need to be interpolated along the driving segment before being divided into 1s chunks, which is likely to be the highest resolutions needed. Any further increases of resolutions are unlikely to yield bettr results whilst sacrificing computational efficiency/overall running time.
 
@@ -65,7 +65,7 @@ Available taxi **trip** datasets:
 
 3. Vehicle-to-Pedestrian communication (V2P) model will need a distribution of pedestrians across the map. Census data could be used to provide an average, however, using a simple uniform distribution is a good start. 
 
-3. It is **very** likely that there simply aren't enough taxis that took part in any of the data gathering exercises to provide meaningful analysis. Therfore, *psuedo* taxis might be used, where several days (eg all tuesday's) could be combined to provide a more *realistic* fleet of taxis/connected AVs. This would give an idea of critical mass required if such a system were to be implemented without resorting to randomly generating O-D tables/trips.
+4. It is **very** likely that there simply aren't enough taxis that took part in any of the data gathering exercises to provide meaningful analysis. Therfore, *psuedo* taxis might be used, where several days (eg all tuesday's) could be combined to provide a more *realistic* fleet of taxis/connected AVs. This would give an idea of critical mass required if such a system were to be implemented without resorting to randomly generating O-D tables/trips.
 
 
 
