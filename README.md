@@ -1,5 +1,26 @@
 ## RomeTaxiData
 
+# Repository Code Overview
+*All code uses python3+ and postgres 9.5.12+*
+*Routing engine = OSRM-backend*
+
+Global variables such as trace start time, datum location are saved in [RomeTaxiGlobalVars](RomeTaxiGlobalVars.py)
+
+In the rome taxi trace data, one finds the following 'columns' in the .csv data file:
+- taxiID
+- TimeStamp
+- GPS
+
+1. Exract/Transform:
+  - Timestamps to unix and datetime obj timestamps
+  - reduce GPS traces to 8 sig. figs (similar to accuracy used to build OSM and google maps)
+  - *"inteligent"* attributes such as day number, weekday number etc.. are added to aid lookup in PostgresDB
+  - copy all to giant .csv file, before importing to Posgtgres database (currently using version 9.5.12)
+  
+2. Cleaning:
+  - traces are quite literally *'all over da place'* hence need to map-match to nearest OSM street segment
+  - currently using OSRM as the back-end map-matching and routing engine
+
 # Background...
 
 Multiple studies look at how vehicles move in cities and their ability to communicate with one another (V2V) and with infrastructure such as base stations (V2I).
@@ -37,7 +58,7 @@ Available taxi **trip** datasets:
 
 1.b) Traces will need to *intelligently* interpolated. Since the distribution of position updates is not uniform (see [CDF update frequency plot](cdf_frequency_rome_taxi_trace_updates.pdf)) nor is it particularly 'frequent'; 90% of GPS updates are less than every ~20s, median~10s updates). To do this, map-matched positions of taxis will need to be interpolated along the driving segment before being divided into 1s chunks, which is likely to be the highest resolutions needed. Any further increases of resolutions are unlikely to yield bettr results whilst sacrificing computational efficiency/overall running time.
 
-1.c) In the case of trip-only datasets such as NYC, entire pseudo traces are likely to be needed. To do this properly a basic traffic model might be needed, in this case, a simple work-around could be to query Alphabets Google Maps service for a subset of trips, and save the typical times and routes suggested for different days of the week (since most vehicular traffic is weekly periodic (daily if you were to divide it into 'working' week-days and weekends).
+1.c) In the case of trip-only datasets such as NYC, entire pseudo traces are likely to be needed. To do this properly a basic traffic model might be needed, in this case, a simple work-around could be to query Alphabets Google Maps service for a subset of trips, and save the typical times and routes suggested for different days of the week, since a lot of vehicular traffic is [weekly periodic](taxis_on_duty) or daily if you were to divide it into 'working' week-days and weekends see [hourly taxi count figure](taxis_on_duty_by_hour.pdf).
 
 2. Line-of-Sight model needs to take into account bends/turns in the road network as well as being bounded by buldings (if present either side of the road)
 
@@ -45,26 +66,7 @@ Available taxi **trip** datasets:
 
 
 
-# Brief Overview of Code
-*All code uses python3+ and postgres 9.5.12+*
-*Routing engine = OSRM-backend*
 
-Global variables such as trace start time, datum location are saved in [RomeTaxiGlovalVars](RomeTaxiGlovalVars.py)
-
-In the rome taxi trace data, one finds the following 'columns' in the .csv data file:
-- taxiID
-- TimeStamp
-- GPS
-
-1. Exract/Transform:
-  - Timestamps to unix and datetime obj timestamps
-  - reduce GPS traces to 8 sig. figs (similar to accuracy used to build OSM and google maps)
-  - *"inteligent"* attributes such as day number, weekday number etc.. are added to aid lookup in PostgresDB
-  - copy all to giant .csv file, before importing to Posgtgres database (currently using version 9.5.12)
-  
-2. Cleaning:
-  - traces are quite literally *'all over da place'* hence need to map-match to nearest OSM street segment
-  - currently using OSRM as the back-end map-matching and routing engine
   
 
 
