@@ -69,10 +69,11 @@ taxidf = pdsql.read_sql_query(execution_str,connection)
 taxidf = taxidf.drop_duplicates()
 
 t_mini_margin = 2 # seconds either side, where we accept the current result
+# really need to get better with using indexing, rather than continuousy re-assigning dataframes
 prime_taxis = taxidf.loc[(taxidf.unix_ts>T_unix-t_mini_margin) & (taxidf.unix_ts<T_unix+t_mini_margin)]
 
 
-estimate_taxis_positions = pd.DataFrame({'taxi_id':prime_taxis.taxi_id, 'lat1':prime_taxis.lat1,'long1':prime_taxis.long1})
+estimate_taxis_positions = pd.DataFrame({'lat1':list(prime_taxis.lat1),'long1':list(prime_taxis.long1)}, index=list(prime_taxis.taxi_id))
 
 
 #taxidf2 = taxidf.drop(taxidf[taxidf.unix_ts==T_unix].index)
@@ -158,21 +159,31 @@ plt.show()
 """
 
 
-apprx_txi_pos_df = pd.DataFrame({'taxi_id':apprx_txi_id, 'lat1':apprx_txi_lat1,'long1':apprx_txi_long1})
-
+#apprx_txi_pos_df = pd.DataFrame({'taxi_id':apprx_txi_id, 'lat1':apprx_txi_lat1,'long1':apprx_txi_long1})
+apprx_txi_pos_df = pd.DataFrame({'lat1':apprx_txi_lat1,'long1':apprx_txi_long1}, index=apprx_txi_id) #uses taxi id as index... could be interesting
 
 estimate_taxis_positions = estimate_taxis_positions.append(apprx_txi_pos_df)
 
 
 #---------
+# Line-of-Sight attempt - LoS
+# calculate straight line distance between points at time T.
 
-#if len(link_data)<2:
-#	if link_data.distance<D_min:
-		
+#radical use of scipy library, does not take into account longs/lats, maybe best to convert to x,y then compute distances... 
+from scipy.spatial import distance_matrix
+dist_mat = pd.DataFrame(distance_matrix(estimate_taxis_positions.values, estimate_taxis_positions.values),index=estimate_taxis_positions.index, columns=estimate_taxis_positions.index)
 
+#dist_mat.index[dist_mat[::]<0.01].tolist()
 
+#route distance table... from osrm...
 
-# actually a bi useless when you think about it: a = interp_points_index[~interp_points_index ].index[-1]
+table_input_df_cols = ['long1','lat1'] #change the order, long,lat for table query input
+estimate_taxis_positions = estimate_taxis_positions[table_input_df_cols]
+table_input_coords = estimate_taxis_positions[0:4].values.tolist()
+
+#this does not seem to work... probably need to remove & infront of annotations in python-osrm.core.py, still something fishy here lies with OSRM backend
+dist_matrix, snapped_coords = osrm.table(table_input_coords,output='dataframe', send_as_polyline=False, annotations='distance')
+
 
 
 '''
