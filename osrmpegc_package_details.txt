@@ -1,0 +1,245 @@
+for big toshiba machine:{
+sudo checkinstall
+[sudo] password for pietro: 
+
+checkinstall 1.6.2, Copyright 2009 Felipe Eduardo Sanchez Diaz Duran
+           This software is released under the GNU GPL.
+
+
+The package documentation directory ./doc-pak does not exist. 
+Should I create a default set of package docs?  [y]: y
+
+Preparing package documentation...OK
+
+*** No known documentation files were found. The new package 
+*** won't include a documentation directory.
+
+Please write a description for the package.
+End your description with an empty line or EOF.
+>> osrmpegc
+>> 
+
+*****************************************
+**** Debian package creation selected ***
+*****************************************
+
+This package will be built according to these values: 
+
+0 -  Maintainer: [ root@mike-dev ]
+1 -  Summary: [ osrmpegc ]
+2 -  Name:    [ build ]
+3 -  Version: [ 20180503 ]
+4 -  Release: [ 1 ]
+5 -  License: [ GPL ]
+6 -  Group:   [ checkinstall ]
+7 -  Architecture: [ amd64 ]
+8 -  Source location: [ build ]
+9 -  Alternate source location: [  ]
+10 - Requires: [  ]
+11 - Provides: [ build ]
+12 - Conflicts: [  ]
+13 - Replaces: [  ]
+
+Enter a number to change any of them or press ENTER to continue: 
+
+Installing with make install...
+
+========================= Installation results ===========================
+[  8%] Built target UTIL
+[ 10%] Built target MICROTAR
+[ 12%] Built target osrm-components
+[ 14%] Built target UPDATER
+[ 14%] Built target osrm_update
+[ 16%] Built target STORAGE
+[ 16%] Built target osrm_store
+[ 16%] Built target CUSTOMIZER
+[ 17%] Built target osrm_customize
+[ 23%] Built target PARTITIONER
+[ 25%] Built target osrm_partition
+[ 39%] Built target GUIDANCE
+[ 39%] Built target osrm_guidance
+[ 53%] Built target EXTRACTOR
+[ 55%] Built target osrm_extract
+[ 78%] Built target ENGINE
+[ 80%] Built target osrm
+[ 82%] Built target CONTRACTOR
+[ 83%] Built target osrm-partition
+[ 85%] Built target osrm_contract
+[ 85%] Built target osrm-contract
+[ 94%] Built target SERVER
+[ 96%] Built target osrm-extract
+[ 98%] Built target osrm-datastore
+[100%] Built target osrm-customize
+[100%] Built target osrm-routed
+Install the project...
+-- Install configuration: "Release"
+-- Installing: /usr/local/bin/osrm-components
+-- Installing: /usr/local/include/osrm/engine/status.hpp
+-- Installing: /usr/local/include/osrm/engine/engine_config.hpp
+-- Installing: /usr/local/include/osrm/engine/hint.hpp
+-- Installing: /usr/local/include/osrm/engine/bearing.hpp
+-- Installing: /usr/local/include/osrm/engine/approach.hpp
+-- Installing: /usr/local/include/osrm/engine/phantom_node.hpp
+-- Installing: /usr/local/include/osrm/util/coordinate.hpp
+-- Installing: /usr/local/include/osrm/util/json_container.hpp
+-- Installing: /usr/local/include/osrm/util/typedefs.hpp
+-- Installing: /usr/local/include/osrm/util/alias.hpp
+-- Installing: /usr/local/include/osrm/util/exception.hpp
+-- Installing: /usr/local/include/osrm/util/bearing.hpp
+-- Installing: /usr/local/include/osrm/storage/storage.hpp
+-- Installing: /usr/local/include/osrm/storage/io_config.hpp
+-- Installing: /usr/local/include/osrm/storage/storage_config.hpp
+-- Installing: /usr/local/include/osrm/extractor/extractor.hpp
+-- Installing: /usr/local/include/osrm/extractor/io_config.hpp
+-- Installing: /usr/local/include/osrm/extractor/extractor_config.hpp
+-- Installing: /usr/local/include/osrm/extractor/travel_mode.hpp
+-- Installing: /usr/local/include/osrm/partitioner/partitioner.hpp
+-- Installing: /usr/local/include/osrm/partitioner/partitioner_config.hpp
+-- Installing: /usr/local/include/osrm/contractor/contractor.hpp
+-- Installing: /usr/local/include/osrm/contractor/contractor_config.hpp
+-- Installing: /usr/local/include/osrm/approach.hpp
+-- Installing: /usr/local/include/osrm/bearing.hpp
+-- Installing: /usr/local/include/osrm/contractor.hpp
+-- Installing: /usr/local/include/osrm/contractor_config.hpp
+-- Installing: /usr/local/include/osrm/coordinate.hpp
+-- Installing: /usr/local/include/osrm/customizer.hpp
+-- Installing: /usr/local/include/osrm/customizer_config.hpp
+-- Installing: /usr/local/include/osrm/engine_config.hpp
+-- Installing: /usr/local/include/osrm/error_codes.hpp
+-- Installing: /usr/local/include/osrm/exception.hpp
+-- Installing: /usr/local/include/osrm/extractor.hpp
+-- Installing: /usr/local/include/osrm/extractor_config.hpp
+-- Installing: /usr/local/include/osrm/json_container.hpp
+-- Installing: /usr/local/include/osrm/match_parameters.hpp
+-- Installing: /usr/local/include/osrm/nearest_parameters.hpp
+-- Installing: /usr/local/include/osrm/osrm.hpp
+-- Installing: /usr/local/include/osrm/osrm_fwd.hpp
+-- Installing: /usr/local/include/osrm/partitioner.hpp
+-- Installing: /usr/local/include/osrm/partitioner_config.hpp
+-- Installing: /usr/local/include/osrm/route_parameters.hpp
+-- Installing: /usr/local/include/osrm/status.hpp
+-- Installing: /usr/local/include/osrm/storage_config.hpp
+-- Installing: /usr/local/include/osrm/table_parameters.hpp
+-- Installing: /usr/local/include/osrm/tile_parameters.hpp
+-- Installing: /usr/local/include/osrm/trip_parameters.hpp
+-- Installing: /usr/local/include/osrm/engine/api/base_parameters.hpp
+-- Installing: /usr/local/include/osrm/engine/api/match_parameters.hpp
+-- Installing: /usr/local/include/osrm/engine/api/nearest_parameters.hpp
+-- Installing: /usr/local/include/osrm/engine/api/route_parameters.hpp
+-- Installing: /usr/local/include/osrm/engine/api/table_parameters.hpp
+-- Installing: /usr/local/include/osrm/engine/api/tile_parameters.hpp
+-- Installing: /usr/local/include/osrm/engine/api/trip_parameters.hpp
+-- Installing: /usr/local/include/mapbox/optional.hpp
+-- Installing: /usr/local/include/mapbox/recursive_wrapper.hpp
+-- Installing: /usr/local/include/mapbox/variant.hpp
+-- Installing: /usr/local/include/mapbox/variant_io.hpp
+-- Installing: /usr/local/include/mapbox/variant_visitor.hpp
+-- Installing: /usr/local/bin/osrm-extract
+-- Installing: /usr/local/bin/osrm-partition
+-- Installing: /usr/local/bin/osrm-customize
+-- Installing: /usr/local/bin/osrm-contract
+-- Installing: /usr/local/bin/osrm-datastore
+-- Installing: /usr/local/bin/osrm-routed
+-- Installing: /usr/local/lib/libosrm.a
+-- Installing: /usr/local/lib/libosrm_extract.a
+-- Installing: /usr/local/lib/libosrm_partition.a
+-- Installing: /usr/local/lib/libosrm_customize.a
+-- Installing: /usr/local/lib/libosrm_update.a
+-- Installing: /usr/local/lib/libosrm_contract.a
+-- Installing: /usr/local/lib/libosrm_store.a
+-- Installing: /usr/local/share/osrm/profiles
+-- Installing: /usr/local/share/osrm/profiles/testbot.lua
+-- Installing: /usr/local/share/osrm/profiles/test.lua
+-- Installing: /usr/local/share/osrm/profiles/rasterbot.lua
+-- Installing: /usr/local/share/osrm/profiles/debug_example.lua
+-- Installing: /usr/local/share/osrm/profiles/turnbot.lua
+-- Installing: /usr/local/share/osrm/profiles/foot.lua
+-- Installing: /usr/local/share/osrm/profiles/lib
+-- Installing: /usr/local/share/osrm/profiles/lib/profile_debugger.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/measure.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/way_handlers.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/tags.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/pprint.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/destination.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/set.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/relations.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/maxspeed.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/guidance.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/sequence.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/access.lua
+-- Installing: /usr/local/share/osrm/profiles/lib/utils.lua
+-- Installing: /usr/local/share/osrm/profiles/bicycle.lua
+-- Installing: /usr/local/share/osrm/profiles/examples
+-- Installing: /usr/local/share/osrm/profiles/examples/postgis.lua
+-- Installing: /usr/local/share/osrm/profiles/rasterbotinterp.lua
+-- Installing: /usr/local/share/osrm/profiles/car.lua
+-- Installing: /usr/local/lib/pkgconfig/libosrm.pc
+
+======================== Installation successful ==========================
+
+Some of the files created by the installation are inside the home directory: /home
+
+You probably don't want them to be included in the package.
+Do you want me to list them?  [n]: n
+Should I exclude them from the package? (Saying yes is a good idea)  [n]: n
+
+Some of the files created by the installation are inside the build
+directory: /home/pietro/osrm-backend/build
+
+You probably don't want them to be included in the package,
+especially if they are inside your home directory.
+Do you want me to list them?  [n]: y
+Should I exclude them from the package? (Saying yes is a good idea)  [y]: n
+
+Copying files to the temporary directory...OK
+
+Stripping ELF binaries and libraries...OK
+
+Compressing man pages...OK
+
+Building file list...OK
+
+Building Debian package...OK
+
+Installing Debian package...OK
+
+Erasing temporary files...OK
+
+Writing backup package...OK
+OK
+
+Deleting temp dir...OK
+
+
+**********************************************************************
+
+ Done. The new package has been installed and saved to
+
+ /home/pietro/osrm-backend/build/build_20180503-1_amd64.deb
+
+ You can remove it from your system anytime using: 
+
+      dpkg -r build
+
+**********************************************************************
+
+pietro@mike-dev:~/osrm-backend/build$ 
+
+# for some reason, i called the package "osrmpegc"
+# this is all done on the machine i ssh into, 
+}
+
+
+for local, tiny toshiba machine, c207
+ Done. The new package has been installed and saved to
+
+ /home/user/Downloads/osrm-backend/build/osrmpegc_20180503-1_amd64.deb
+
+ You can remove it from your system anytime using: 
+
+      dpkg -r osrmpegc
+
+good luck.
+
+will - 8 chapters
+3 chapters on applications

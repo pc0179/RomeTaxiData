@@ -16,7 +16,8 @@ import polyline
 
 #route = osrm.simple_route([12.442,41.856],[12.5387,41.928],output='full',overview="full", geometry='polyline',steps='True')
 
-def mid_point(x1,y1,t1,x2,y2,t2,T):
+
+def Straight_Line_Interp(x1,y1,t1,x2,y2,t2,T):
 # strictly moving from x1,y1 --> x2,y2,...
 # t1<t2.
 
@@ -26,6 +27,7 @@ def mid_point(x1,y1,t1,x2,y2,t2,T):
 	yT = dT*(y2-y1)/dt + y1
 
 	return round(xT,6),round(yT,6)
+
 
 
 route_result = osrm.simple_route([12.442,41.856],[12.5387,41.928],output='full',overview="full", geometry='polyline',steps='True',annotations='true')
