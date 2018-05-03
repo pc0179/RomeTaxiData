@@ -15,8 +15,6 @@ from sqlalchemy import create_engine
 #For Plotting:
 import matplotlib.pyplot as plt
 
-#---------------------------------------
-# 0. some personal functions
 def Straight_Line_Interp(x1,y1,t1,x2,y2,t2,T):
 # strictly moving from x1,y1 --> x2,y2,...
 # t1<t2.
@@ -27,6 +25,62 @@ def Straight_Line_Interp(x1,y1,t1,x2,y2,t2,T):
 	yT = dT*(y2-y1)/dt + y1
 
 	return round(xT,6),round(yT,6)
+
+def Position_From_Datum(latlong_tuple):
+#	if DatumLong== None  & DatumLat == None:
+#	DatumLong = 12.492373
+#	DatumLat = 41.890251
+	DatumLat = RTGV.DatumLat
+	DatumLong = RTGV.DatumLong
+#if type(latlong_tuple)==tuple:
+	lat1 = latlong_tuple[0]
+	lon1 = latlong_tuple[1]
+#	else:
+#		lat1 = latlong_tuple
+#		lon1 = latlong_tuple
+		
+	x = round(haversine_pc(lon1,DatumLat,DatumLong,DatumLat)) # ,2)
+	y = round(haversine_pc(DatumLong,lat1,DatumLong,DatumLat)) #,2)
+
+	if lat1-DatumLat<0:
+	#Implies point is South of Datum
+		x=-x
+	if lon1-DatumLong<0:
+	#Implies point is WEST of Datum
+		y=-y
+	return tuple([int(x),int(y)])
+
+def haversine_dist_matrix(latitudes,longitudes):
+    
+        
+    x = np.asarray(longitudes)
+    m, k = x.shape
+    y = np.asarray(latitudes)
+    n, kk = y.shape
+    result = np.empty((m,n),dtype=float)
+
+    if m<n:
+        for i in range(m):
+            result[i,:] = spherical_dist(x[i],y)
+    else:
+        for j in range(n):
+            result[:,j] = spherical_dist(x,y[j])
+
+    return result
+
+
+
+def spherical_dist(pos1, pos2, r=3958.75e3):
+    pos1 = pos1 * np.pi / 180
+    pos2 = pos2 * np.pi / 180
+    cos_lat1 = np.cos(pos1[..., 0])
+    cos_lat2 = np.cos(pos2[..., 0])
+    cos_lat_d = np.cos(pos1[..., 0] - pos2[..., 0])
+    cos_lon_d = np.cos(pos1[..., 1] - pos2[..., 1])
+    return r * np.arccos(cos_lat_d - cos_lat1 * cos_lat2 * (1 - cos_lon_d))
+
+    
+#linear_dist_df = pd.DataFrame(haversine_dist_matrix(estimate_taxis_positions[0:4].values, estimate_taxis_positions[0:4].values),index=estimate_taxis_positions[0:4].index, columns=estimate_taxis_positions[0:4].index)
 
 
 def Route_Osrm(start_long,start_lat,target_long,target_lat,start_timestamp,target_timestamp):
@@ -170,19 +224,63 @@ estimate_taxis_positions = estimate_taxis_positions.append(apprx_txi_pos_df)
 # calculate straight line distance between points at time T.
 
 #radical use of scipy library, does not take into account longs/lats, maybe best to convert to x,y then compute distances... 
-from scipy.spatial import distance_matrix
-dist_mat = pd.DataFrame(distance_matrix(estimate_taxis_positions.values, estimate_taxis_positions.values),index=estimate_taxis_positions.index, columns=estimate_taxis_positions.index)
+# actually really stupid, uses minoski distance or some shit, writing my own fucking func.
+
+#from scipy.spatial import distance_matrix
+#linear_dist_df = pd.DataFrame(distance_matrix(estimate_taxis_positions.values, estimate_taxis_positions.values),index=estimate_taxis_positions.index, columns=estimate_taxis_positions.index)
+
+#linear_dist_df = pd.DataFrame(distance_matrix(estimate_taxis_positions[0:4].values, estimate_taxis_positions[0:4].values),index=estimate_taxis_positions[0:4].index, columns=estimate_taxis_positions[0:4].index)
 
 #dist_mat.index[dist_mat[::]<0.01].tolist()
 
 #route distance table... from osrm...
 
+
+linear_dist_df = pd.DataFrame(haversine_dist_matrix(estimate_taxis_positions.values, estimate_taxis_positions.values),index=estimate_taxis_positions.index, columns=estimate_taxis_positions.index)
+linear_dist_mat = np.array(haversine_dist_matrix(estimate_taxis_positions.values, estimate_taxis_positions.values))
+
+
+
 table_input_df_cols = ['long1','lat1'] #change the order, long,lat for table query input
 estimate_taxis_positions = estimate_taxis_positions[table_input_df_cols]
-table_input_coords = estimate_taxis_positions[0:4].values.tolist()
+table_input_coords = estimate_taxis_positions.values.tolist()
+route_table_index = estimate_taxis_positions.index.tolist()
 
-#this does not seem to work... probably need to remove & infront of annotations in python-osrm.core.py, still something fishy here lies with OSRM backend
-dist_matrix, snapped_coords = osrm.table(table_input_coords,output='dataframe', send_as_polyline=False, annotations='distance')
+route_dist_df = osrm.table(table_input_coords, route_table_index, output='dataframe', send_as_polyline=True, annotations='distance')
+
+
+queck = np.where((linear_dist_mat>0)&(linear_dist_mat<150)) #returns tuple of two arrays, each array is row /column index...
+
+
+
+# more strategy notes...
+# 1. reduce number of routes to search, using linear haversine as first filter (only investigate taxis <150m apart)
+# 2. run route table query for results (pray that they are less than 200ish... maybe could inrease size at osrm-routed end..)
+# 3. select routes less than <200m? (i.e. those closest to linear distance), note direction of pairs....
+# 4.1 now route individually each pair (using correct direction) and count intersections/bearing angle changes... 
+# 4.2 download buildings shape file, set up db, run query, does line between pair of taxis crosses polygon/shapefile of building... 
+
+ 
+column_taxi_ids = linear_dist_df.columns.tolist()
+routing_input_list = []
+
+qwer_rows = linear_dist_df.columns[queck[0]]
+
+qwer_pos = estimate_taxis_positions.lat1[qwer_rows]
+
+for i in range(0,len(queck[0])):
+    routing_input_list.append(estimate_taxis_positions.loc[column_taxi_ids[queck[0][i]],:]) #,column_taxi_ids[queck[1][i]]])
+
+
+
+
+
+
+
+
+
+
+
 
 
 
