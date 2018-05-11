@@ -19,7 +19,7 @@ from sqlalchemy import create_engine
 import matplotlib.pyplot as plt
 
 #for Line-of-Sight Model
-from shapely.geometry import Point, LineString, shape
+from shapely.geometry import Point, LineString, shape, mapping
 import fiona
 import geopandas as gp
 from geopandas.tools import sjoin
@@ -97,7 +97,9 @@ t_mini_margin = 2 # seconds either side, where we accept the current result
 
 #Connection to database
 # for C207:
-connect_str = "dbname='rometaxitraces' user='postgres' host='localhost' password='postgres'"
+#connect_str = "dbname='rometaxitraces' user='postgres' host='localhost' password='postgres'"
+#fur klara:
+connect_str = "dbname='c207rometaxitraces' user='postgres' host='localhost' password='postgres'"
 connection = psycopg2.connect(connect_str)
 
 
@@ -273,11 +275,55 @@ taxi_b = estimate_taxis_positions.iloc[queck[1][0]].tolist()
 
 #Connection to database
 # for KLARA,,,,,:
-LoS_connect_str = "dbname='ver2_shp_rome' user='postgres' host='localhost' password='postgres'"
+LoS_connect_str = "dbname='shp_rome_klara' user='postgres' host='localhost' password='postgres'"
 LoS_connection = psycopg2.connect(LoS_connect_str)
 
+#just for trial purposes... validataion....
+# s_line =  LineString([(12.497626,41.897156),(12.4922,41.8902)]) #should produce 11, i.e 11 buildings in the way....
+taxi_a = [12.497626,41.897156]
+taxi_b = [12.4922,41.8902]
+LoS_execution_str = ("SELECT * FROM rome_buildings WHERE ST_Intersects(ST_SetSRID('LINESTRING (%s %s, %s %s)'::geometry,4326), geom);" % (str(taxi_a[0]),str(taxi_a[1]),str(taxi_b[0]),str(taxi_b[1])))
 
-LoS_execution_str = ("SELECT FROM rome_buildings WHERE ST_Intersects(ST_SetSRID('LINESTRING (%s %s, %s %s)'::geometry,4326), geom);" % (str(taxi_a[0]),str(taxi_a[1]),str(taxi_b[0]),str(taxi_b[1])))
+LoS_df = pdsql.read_sql_query(LoS_execution_str,LoS_connection)
+
+
+LoS_results = []
+line_string_list = []
+line_list = []
+
+for i in range(0,len(queck[0])):
+    
+    taxi_a = estimate_taxis_positions.iloc[queck[0][i]].tolist()
+    taxi_b = estimate_taxis_positions.iloc[queck[1][i]].tolist()
+
+    LoS_execution_str = ("SELECT * FROM rome_buildings WHERE ST_Intersects(ST_SetSRID('LINESTRING (%s %s, %s %s)'::geometry,4326), geom);" % (str(taxi_a[0]),str(taxi_a[1]),str(taxi_b[0]),str(taxi_b[1])))
+
+    LoS_df = pdsql.read_sql_query(LoS_execution_str,LoS_connection)
+    
+    LoS_results.append(len(LoS_df))
+
+    #for plotting in QGis
+    coords = [(taxi_a[1],taxi_a[0]),(taxi_b[1],taxi_b[0])] #yeah switched for some weird reason.
+    line_string_list.append(LineString(coords))
+    line_list.append(coords)
+
+
+
+
+
+
+
+# writing to shapefile, for easier plotting...
+#multicoords = [line_list for line in line_string_list]
+# Making a flat list -> LineString
+simple = LineString([item for sublist in line_list  for item in sublist])
+# resulting shapefile
+
+schema = {'geometry': 'LineString','properties': {'id': 'int'}}
+with fiona.open('rome_taxi_lines.shp', 'w', 'ESRI Shapefile', schema)  as output:
+   output.write({'geometry':mapping(simple),'properties': {'id':1}})
+
+
 
 
 
