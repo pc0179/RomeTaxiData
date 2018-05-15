@@ -20,7 +20,7 @@ from sqlalchemy import create_engine
 import matplotlib.pyplot as plt
 
 #for Line-of-Sight Model
-from shapely.geometry import Point, LineString, shape, mapping
+from shapely.geometry import Point, LineString, shape, mapping, MultiLineString
 import fiona
 import geopandas as gp
 from geopandas.tools import sjoin
@@ -340,18 +340,32 @@ for i in range(0,len(nearby_taxis)):
 # writing to shapefile, for easier plotting...
 #multicoords = [line_list for line in line_string_list]
 # Making a flat list -> LineString
+
+def Save_LoS_Shpfile(line_list,shp_file_name):
+
+    schema = {'geometry': 'LineString','properties': {'id': 'int'}}
+    with fiona.open(('%s.shp' % (shp_file_name)), 'w', 'ESRI Shapefile', schema)  as output:
+    
+        for i in range(0,len(line_list)):
+            simple3 = LineString(line_list[i])
+            output.write({'geometry':mapping(simple3),'properties': {'id':1}})
+
+
+"""
 def Save_LoS_shpfile(line_list,shp_file_name):
 
     simple = LineString([item for sublist in line_list  for item in sublist])
+    simple2 = MultiLineString([item for sublist in line_list  for item in sublist])
 # resulting shapefile
 
     schema = {'geometry': 'LineString','properties': {'id': 'int'}}
     with fiona.open(('%s.shp' % (shp_file_name)), 'w', 'ESRI Shapefile', schema)  as output:
-       output.write({'geometry':mapping(simple),'properties': {'id':1}})
+       output.write({'geometry':mapping(simple2),'properties': {'id':1}})
+"""
 
 shp_file_name = ['los_rome_taxi_lines.shp','nolos_rome_taxi_lines.shp']
-Save_LoS_shpfile(los_line_list,shp_file_name[0])
-Save_LoS_shpfile(nolos_line_list,shp_file_name[1])
+Save_LoS_Shpfile(los_line_list,shp_file_name[0])
+Save_LoS_Shpfile(nolos_line_list,shp_file_name[1])
 
 
 
