@@ -57,6 +57,7 @@ def SimDayNum(some_DT_obj):
 	global sim_start_time
 	#sim_daynum = (some_DT_obj-sim_start_time).days()
 	sim_daynum = some_DT_obj.day - sim_start_time.day
+	# since rome taxi trace data spans slightly over two months, following edit was necessary to enure correct day count
 	if some_DT_obj.month==3:
 		sim_daynum = sim_daynum+29
 	return int(sim_daynum)

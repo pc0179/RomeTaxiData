@@ -102,11 +102,16 @@ t_mini_margin = 2 # seconds either side, where we accept the current result
 #fur klara:
 #connect_str = "dbname='c207rometaxitraces' user='postgres' host='localhost' password='postgres'"
 #fur NiGB,
-connect_str = "dbname='nigb_romedata' user='postgres' host='localhost' password='postgres'"
+#connect_str = "dbname='nigb_romedata' user='postgres' host='localhost' password='postgres'"
+#fur mike_pc
+connect_str = "dbname ='mike_romedata' user='postgres' host='localhost' password='postgres'"
 connection = psycopg2.connect(connect_str)
 
+# fur everything else:
+#execution_str = ("SELECT taxi_id,unix_ts,lat1,long1,x,y FROM rometaxidata WHERE unix_ts BETWEEN %s AND %s " % (str(T_unix-t_margin),str(T_unix+t_margin)))
 
-execution_str = ("SELECT taxi_id,unix_ts,lat1,long1,x,y FROM rometaxidata WHERE unix_ts BETWEEN %s AND %s " % (str(T_unix-t_margin),str(T_unix+t_margin)))
+#fur mike-pc
+execution_str = ("SELECT taxi_id,unix_ts,latitude,longitude,x,y FROM rome_taxi_trace WHERE unix_ts BETWEEN %s  %s AND %s " % (str(T_unix-t_margin),str(T_unix+t_margin)))
 
 #2. Quick filter, db data to pandas dataframe
 taxidf = pdsql.read_sql_query(execution_str,connection)
@@ -115,7 +120,7 @@ taxidf = taxidf.drop_duplicates() #removes duplicates, an ongoing problem.
 # taxis within t_mini_margin, are assumed to be correct, no further processing here
 prime_taxis = taxidf.loc[(taxidf.unix_ts>T_unix-t_mini_margin) & (taxidf.unix_ts<T_unix+t_mini_margin)]
 
-estimate_taxis_positions = pd.DataFrame({'lat1':list(prime_taxis.lat1),'long1':list(prime_taxis.long1)}, index=list(prime_taxis.taxi_id))
+estimate_taxis_positions = pd.DataFrame({'latitude':list(prime_taxis.lat1),'longitude':list(prime_taxis.long1)}, index=list(prime_taxis.taxi_id))
 
 
 # add diff column... (unix_ts - user set time, T)
@@ -185,7 +190,7 @@ for taxi_id in taxi_ids:
 
 #4. results from loop, estimate linear distance between taxis for initial sorting...
 # regards Line of Sight (LoS) model
-apprx_txi_pos_df = pd.DataFrame({'lat1':apprx_txi_lat1,'long1':apprx_txi_long1}, index=apprx_txi_id) #uses taxi id as index... could be interesting
+apprx_txi_pos_df = pd.DataFrame({'latitude':apprx_txi_lat1,'longitude':apprx_txi_long1}, index=apprx_txi_id) #uses taxi id as index... could be interesting
 
 estimate_taxis_positions = estimate_taxis_positions.append(apprx_txi_pos_df)
 
@@ -214,10 +219,11 @@ route_dist_df = osrm.table(table_input_coords, route_table_index, output='datafr
 
 
 queck = np.where((linear_dist_mat>0)&(linear_dist_mat<150)) #returns tuple of two arrays, each array is row /column index...
-"""
+
 
 #this LoS model works but is super fucking slow.
-"""
+
+
 s_line =  LineString([(12.497626,41.897156),(12.4922,41.8902)])
 
 poly = gp.GeoDataFrame.from_file('/home/user/Downloads/rome_only_osm_data/shp_city_rome/shape/buildings.shp')
@@ -258,6 +264,7 @@ for c_l ,patches in dict_mapindex_mpl_polygon.items():
 ax.autoscale_view()
 plt.plot(x_line,y_line,'-*r',lw=2)
 plt.show()
+
 
 """
 
@@ -350,7 +357,6 @@ def Save_LoS_Shpfile(line_list,shp_file_name):
             simple3 = LineString(line_list[i])
             output.write({'geometry':mapping(simple3),'properties': {'id':1}})
 
-
 """
 def Save_LoS_shpfile(line_list,shp_file_name):
 
@@ -358,7 +364,7 @@ def Save_LoS_shpfile(line_list,shp_file_name):
     simple2 = MultiLineString([item for sublist in line_list  for item in sublist])
 # resulting shapefile
 
-    schema = {'geometry': 'LineString','properties': {'id': 'int'}}
+   aschema = {'geometry': 'LineString','properties': {'id': 'int'}}
     with fiona.open(('%s.shp' % (shp_file_name)), 'w', 'ESRI Shapefile', schema)  as output:
        output.write({'geometry':mapping(simple2),'properties': {'id':1}})
 """
