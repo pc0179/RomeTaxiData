@@ -57,6 +57,8 @@ def SimDayNum(some_DT_obj):
 	global sim_start_time
 	#sim_daynum = (some_DT_obj-sim_start_time).days()
 	sim_daynum = some_DT_obj.day - sim_start_time.day
+	if some_DT_obj.month==3:
+		sim_daynum = sim_daynum+29
 	return int(sim_daynum)
 
 def SimWeekDayNum(some_DT_obj):
@@ -122,7 +124,7 @@ def Long2XConv(longitude):
     x = round(haversine_pc(datumlat,longitude,datumlat,datumlong))
     if longitude<datumlong: #IMPLIES taxi is west of datum (West=-ve) ,(East=+ve)
         x = -x
-    return x
+    return int(x)
 
 def Lat2YConv(latitude):
     datumlat = RTGV.DatumLat
@@ -130,7 +132,7 @@ def Lat2YConv(latitude):
     y = round(haversine_pc(latitude,datumlong,datumlat,datumlong))
     if latitude<datumlat: #IMPLIES  taxi is south of datum (South=-ve),(North=+ve)
         y = -y
-    return y
+    return int(y)
 
     
 
@@ -138,14 +140,14 @@ new_dfcols = ['taxi_id','dt_ts','unix_ts','weekday','trace_day','latitude','long
 new_tracedf = pd.DataFrame(columns=new_dfcols)
 
 #outputfile
-output_trace_file = '/home/user/RomeTaxiData/initial_filtered_rome_trace.csv'
+output_trace_file = '/home/pietro/Taxi-Datasets/initial_filtered_rome_trace.csv'
 new_tracedf.to_csv(output_trace_file, header=new_dfcols, index = False, sep=";")
 
 #Obtain Chunk of Data from text file
-raw_trace_data_filename = '/home/user/Downloads/c207_all_taxi_datasets/rome_taxi_trace_feb.txt'
+raw_trace_data_filename = '/home/pietro/Taxi-Datasets/rome_taxi_trace_feb.txt'
 
 
-reader=pd.read_table(raw_trace_data_filename,sep=";",chunksize=1000 ,header = None, iterator=True)
+reader=pd.read_table(raw_trace_data_filename,sep=";",chunksize=20000 ,header = None, iterator=True)
 chunk_index = 0
 for chunk in reader:
     chunk_index +=1
