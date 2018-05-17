@@ -111,16 +111,17 @@ connection = psycopg2.connect(connect_str)
 #execution_str = ("SELECT taxi_id,unix_ts,lat1,long1,x,y FROM rometaxidata WHERE unix_ts BETWEEN %s AND %s " % (str(T_unix-t_margin),str(T_unix+t_margin)))
 
 #fur mike-pc
-execution_str = ("SELECT taxi_id,unix_ts,latitude,longitude,x,y FROM rome_taxi_trace WHERE unix_ts BETWEEN %s  %s AND %s " % (str(T_unix-t_margin),str(T_unix+t_margin)))
+execution_str = ("SELECT taxi_id,unix_ts,latitude,longitude,x,y FROM rome_taxi_trace WHERE unix_ts BETWEEN %s AND %s " % (str(T_unix-t_margin),str(T_unix+t_margin)))
 
 #2. Quick filter, db data to pandas dataframe
 taxidf = pdsql.read_sql_query(execution_str,connection)
 taxidf = taxidf.drop_duplicates() #removes duplicates, an ongoing problem.
 
+
 # taxis within t_mini_margin, are assumed to be correct, no further processing here
 prime_taxis = taxidf.loc[(taxidf.unix_ts>T_unix-t_mini_margin) & (taxidf.unix_ts<T_unix+t_mini_margin)]
 
-estimate_taxis_positions = pd.DataFrame({'latitude':list(prime_taxis.lat1),'longitude':list(prime_taxis.long1)}, index=list(prime_taxis.taxi_id))
+estimate_taxis_positions = pd.DataFrame({'latitude':list(prime_taxis.latitude),'longitude':list(prime_taxis.longitude)}, index=list(prime_taxis.taxi_id))
 
 
 # add diff column... (unix_ts - user set time, T)
@@ -153,16 +154,16 @@ for taxi_id in taxi_ids:
         # else: do some routing and interping between points...
         d = Straight_Line_Distance(adf2.x,adf2.y,bdf2.x,bdf2.y)
 
-        D_min = 10 # minimum distance in metres actually worth interpolating...
+        D_min = 15 # minimum distance in metres actually worth interpolating...
         if d<D_min:
     #taxi_position = [bdf2.long1,bdf2.lat1] #maybe in future use nearest value...
-            apprx_txi_lat1.append(bdf2.lat1)
-            apprx_txi_long1.append(bdf2.long1)
+            apprx_txi_lat1.append(bdf2.latitude)
+            apprx_txi_long1.append(bdf2.longitude)
             apprx_txi_id.append(taxi_id)
 
 
         else: 
-            link_data, route_nodes  = Route_Osrm(bdf2.long1,bdf2.lat1,adf2.long1,adf2.lat1,bdf2.unix_ts,adf2.unix_ts)
+            link_data, route_nodes  = Route_Osrm(bdf2.longitude,bdf2.latitude,adf2.longitude,adf2.latitude,bdf2.unix_ts,adf2.unix_ts)
 
             a = link_data[link_data.dur_cumsum>T_unix].dur_cumsum.idxmin()
 	# herein at a, lies an interesting problem. There are occassions where the vehicle travels exceedingly slowly, therefore it's start and end time  do not match the times predicted by osrm (to get from A-->B), i.e. osrm_generated_timestamp_at_B < actual timestamp at b, therefore need to think about scaling, such that the duration cumsum takes into account the discrepency between actuall_end_timestamp and the one predicted by osrm.
