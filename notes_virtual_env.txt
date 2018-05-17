@@ -1,0 +1,10 @@
+python virtualenv
+https://virtualenv.pypa.io/en/stable/userguide/
+
+to start, cd into ENV directory
+then:
+$ source bin/activate
+
+to exit:
+$ deactivate
+

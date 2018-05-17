@@ -1,0 +1,19 @@
+TOSHIBA EYES ONLY:
+ssh pietro@192.168.21.197
+passsword: 47z!YrUtr
+
+for copying files across:
+- https://unix.stackexchange.com/questions/106480/how-to-copy-files-from-one-machine-to-another-using-ssh
+
+scp <source> <destination>
+To copy a file from B to A while logged into B:
+
+scp /path/to/file username@a:/path/to/destination
+
+
+To copy a file from B to A while logged into A:
+
+scp username@b:/path/to/file /path/to/destination
+
+-------
+
