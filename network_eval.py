@@ -6,6 +6,12 @@ for every 1s? count how many taxis 'can' talk
 - count those just within 100m of each other
 - count those within LoS + 100m of each other and compare
 """
+import matplotlib
+matplotlib.use('Agg')
+
+
+import time
+script_stat_time = time.time()
 
 #in general:
 import numpy as np
@@ -117,7 +123,7 @@ execution_str = ("SELECT taxi_id,unix_ts,latitude,longitude,x,y FROM rome_taxi_t
 start_time = dt.datetime(2014,2,3,6,0,0)
 Tstart_unix = int(start_time.timestamp())
 
-T_search_times = list(range(Tstart_unix,Tstart_unix+(60*60*14),30)) #search for 14 hours? at every 30 seconds, this is a lot of queries... moving on...
+T_search_times = list(range(Tstart_unix,Tstart_unix+(60*60*13),30)) #search for 14 hours? at every 30 seconds, this is a lot of queries... moving on...
 T_search_margin = 15 #i.e. thirty second chunks
 t_accept = 1 #second either side? just use this value for position
 
@@ -168,8 +174,7 @@ for T in T_search_times:
             # if distance between chosen points is <D_min: pick whatever is closest
             # else: do some routing and interping between points...
             d = Straight_Line_Distance(adf2.x,adf2.y,bdf2.x,bdf2.y)
-
-            D_min = 15 # 15 #minimum distance in metres actually worth interpolating...
+            D_min = 5 # 15 #minimum distance in metres actually worth interpolating...
             if d<D_min:
         #taxi_position = [bdf2.long1,bdf2.lat1] #maybe in future use nearest value...
                 #xT,yT = Straight_Line_Interp(adf2.x,adf2.y,adf2.unix_ts,bdf2.x,bdf2.y,bdf2.unix_ts,T)
@@ -180,28 +185,33 @@ for T in T_search_times:
 
             else: 
                 link_data, route_nodes  = Route_Osrm(bdf2.longitude,bdf2.latitude,adf2.longitude,adf2.latitude,bdf2.unix_ts,adf2.unix_ts)
-
-                a = link_data[link_data.dur_cumsum>T].dur_cumsum.idxmin()
+                #this is a rather ugly fix, to the problem of null routes, given very short distances between points
+                if link_data.distance[0] <D_min:
+                    apprx_txi_lat1.append(route_nodes.lat[0])
+                    apprx_txi_long1.append(route_nodes.long[0])
+                    apprx_txi_id.append(taxi_id)
+                else: 
+                    a = link_data[link_data.dur_cumsum>T].dur_cumsum.idxmin()
 	    # herein at a, lies an interesting problem. There are occassions where the vehicle travels exceedingly slowly, therefore it's start and end time  do not match the times predicted by osrm (to get from A-->B), i.e. osrm_generated_timestamp_at_B < actual timestamp at b, therefore need to think about scaling, such that the duration cumsum takes into account the discrepency between actuall_end_timestamp and the one predicted by osrm.
-                b = a+1
+                    b = a+1
 
-                x1 = route_nodes['long'][a]
-                y1 = route_nodes['lat'][a]
-                if a==0:
-	                t1 = link_data['dur_cumsum'][a]-link_data.duration[a]
-                else:
-	                t1 = link_data['dur_cumsum'][a-1]
+                    x1 = route_nodes['long'][a]
+                    y1 = route_nodes['lat'][a]
+                    if a==0:
+                        t1 = link_data['dur_cumsum'][a]-link_data.duration[a]
+                    else:
+                        t1 = link_data['dur_cumsum'][a-1]
 
-                x2 = route_nodes['long'][b]
-                y2 = route_nodes['lat'][b]
-                t2 = link_data['dur_cumsum'][a]
+                    x2 = route_nodes['long'][b]
+                    y2 = route_nodes['lat'][b]
+                    t2 = link_data['dur_cumsum'][a]
 
 
-                xT,yT = Straight_Line_Interp(x1,y1,t1,x2,y2,t2,T)
+                    xT,yT = Straight_Line_Interp(x1,y1,t1,x2,y2,t2,T)
 
-                apprx_txi_lat1.append(yT)
-                apprx_txi_long1.append(xT)
-                apprx_txi_id.append(taxi_id)
+                    apprx_txi_lat1.append(yT)
+                    apprx_txi_long1.append(xT)
+                    apprx_txi_id.append(taxi_id)
 
 
 
@@ -255,46 +265,56 @@ for T in T_search_times:
     num_unreal_connections.append(taxis_nolos)
     total_conns.append(len(nearby_taxis))
     print('current time batch = %i' % (T))
-    print('progress-ish = %s' % ((T-Tstart_unix)/60)
-
-        #if LoS_results[-1]>0:
-            #nolos_coords = [(taxi_a[1],taxi_a[0]),(taxi_b[1],taxi_b[0])] #yeah switched for some weird reason.
-          
-            #nolos_line_string_list.append(LineString(nolos_coords))
-            #nolos_line_list.append(nolos_coords)
-        #else:
-            #los_coords = [(taxi_a[1],taxi_a[0]),(taxi_b[1],taxi_b[0])] #yeah switched for some weird reason.
-            #los_line_string_list.append(LineString(los_coords))
-            #los_line_list.append(los_coords)
-
-
-    
-    
+    print('progress-ish = %f' % (len(num_real_connections)/len(T_search_times)))
 
 
 
-"""
-0. define time slots/sample windows for processsssing
-1. query db for taxis within defined time slot
-2. FILTER
-    z) remove duplicates...
-    a) taxis within a second of T ==> just use their current position
-    b) taxis whose position does not change between T-t and T+t, use that posision... 
-    c) map-match to road segment? or does route accomplish this already?...
-    d) maybe should check if points are within a buliding to start?... 
+end_script_time = time.time()
+
+#create pandas dataframe for easy saving to fucking csv.
 
 
-once nearest taxis are established, then run LoS model
-- how many taxis can actually (LoS) communicate at that particular second?
-- how many can't communicate (NoLoS) but, are within 100m range at time, T?
-- number of closest commuicable neighbours?
+time_4_plot = np.array(T_search_times[0:len(total_conns)])-Tstart_unix
 
-note st_intersects does not seem to return a True/False statement... instead returns number of buildings (i think)... would it be faster with T/F instead?
-note iloc returns literal position within pd.df, whereas loc uses the index provided (i.e. the taxi_ids in some cases...)
+RESULTS = pd.DataFrame({'time_ts': time_4_plot,'los':num_real_connections,'nolos':num_unreal_connections,'total_conns':total_conns})
 
-just ran.
-very slow. around 5-10mins for 90mins-ish trace data analysis...
-once again, problems when link_data = 0 (i.e has no values) line 182, d =13 metres, maybe need to up it....
+RESULTS.columns = ['time_ts','los','nolos','total_conns']
 
-"""
+RESULTS.to_csv('taxi_net_eval.csv',sep=',',header=True,index=False)
 
+
+#import matplotlib
+#matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+
+plt.figure()
+plt.plot(time_4_plot,num_real_connections,'-*k',time_4_plot,num_unreal_connections,'--ob')
+#plt.plot(T_search_times[0:len(total_conns)]-Tstart_unix,num_real_connections,'*k',T_search_times[0:len(total_conns)]-Tstart_unix,num_unreal_connections,'ob')
+plt.xlabel('Time/s')
+plt.ylabel('Number of poten. conns. between taxis')
+plt.savefig('taxi_conns_1day.pdf', dpi=400)
+
+#"""
+#0. define time slots/sample windows for processsssing
+#1. query db for taxis within defined time slot
+#2. FILTER
+#    z) remove duplicates...
+#    a) taxis within a second of T ==> just use their current position
+#    b) taxis whose position does not change between T-t and T+t, use that posision... 
+#    c) map-match to road segment? or does route accomplish this already?...
+#    d) maybe should check if points are within a buliding to start?... 
+
+
+#once nearest taxis are established, then run LoS model
+#- how many taxis can actually (LoS) communicate at that particular second?
+#- how many can't communicate (NoLoS) but, are within 100m range at time, T?
+#- number of closest commuicable neighbours?
+
+#note st_intersects does not seem to return a True/False statement... instead returns number of buildings (i think)... would it be faster with T/F instead?
+#note iloc returns literal position within pd.df, whereas loc uses the index provided (i.e. the taxi_ids in some cases...)
+
+#just ran.
+#very slow. around 5-10mins for 90mins-ish trace data analysis...
+#once again, problems when link_data = 0 (i.e has no values) line 182, d =13 metres, maybe need to up it....
+#"""
