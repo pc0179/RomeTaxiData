@@ -127,8 +127,11 @@ T_search_times = list(range(Tstart_unix,Tstart_unix+(60*60*13),30)) #search for 
 T_search_margin = 15 #i.e. thirty second chunks
 t_accept = 1 #second either side? just use this value for position
 
-
-
+#WARNING: SHITTY BUG.... 
+############### due to fuck up at 1391432070
+problem_T = 1391432100
+T_search_times = list(range(problem_T,Tstart_unix+(60*60*13),30))
+#################### 
 num_real_connections = []
 num_unreal_connections = []
 total_conns = []
@@ -174,7 +177,7 @@ for T in T_search_times:
             # if distance between chosen points is <D_min: pick whatever is closest
             # else: do some routing and interping between points...
             d = Straight_Line_Distance(adf2.x,adf2.y,bdf2.x,bdf2.y)
-            D_min = 5 # 15 #minimum distance in metres actually worth interpolating...
+            D_min = 10 # 15 #minimum distance in metres actually worth interpolating...
             if d<D_min:
         #taxi_position = [bdf2.long1,bdf2.lat1] #maybe in future use nearest value...
                 #xT,yT = Straight_Line_Interp(adf2.x,adf2.y,adf2.unix_ts,bdf2.x,bdf2.y,bdf2.unix_ts,T)
@@ -280,7 +283,7 @@ RESULTS = pd.DataFrame({'time_ts': time_4_plot,'los':num_real_connections,'nolos
 
 RESULTS.columns = ['time_ts','los','nolos','total_conns']
 
-RESULTS.to_csv('taxi_net_eval.csv',sep=',',header=True,index=False)
+RESULTS.to_csv('taxi_net_eval2.csv',sep=',',header=True,index=False)
 
 
 #import matplotlib
@@ -293,7 +296,7 @@ plt.plot(time_4_plot,num_real_connections,'-*k',time_4_plot,num_unreal_connectio
 #plt.plot(T_search_times[0:len(total_conns)]-Tstart_unix,num_real_connections,'*k',T_search_times[0:len(total_conns)]-Tstart_unix,num_unreal_connections,'ob')
 plt.xlabel('Time/s')
 plt.ylabel('Number of poten. conns. between taxis')
-plt.savefig('taxi_conns_1day.pdf', dpi=400)
+plt.savefig('taxi_conns_1day_2.pdf', dpi=400)
 
 #"""
 #0. define time slots/sample windows for processsssing
