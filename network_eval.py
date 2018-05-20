@@ -36,6 +36,14 @@ import fiona
 import geopandas as gp
 from geopandas.tools import sjoin
 
+#osrm start-up
+#import subprocess as sp
+#test_subprocess = sp.Popen(["cd /home/elizabeth/Downloads/Italy-updated-osrm-map/"])# &&  osrm-routed centro-latest.osrm -a CH"])
+
+# this might not work
+#import os
+#os.system("cd /home/elizabeth/Downloads/Italy-updated-osrm-map/ &&  osrm-routed centro-latest.osrm -a CH")
+
 #some useful-ish functions:
 def MiniLinearDistFilter(linear_dist_mat,min_los_length,max_los_length):
     queck = []
@@ -105,22 +113,16 @@ def Straight_Line_Distance(x1,y1,x2,y2):
 #~--- now for some serious scripting.........................................
 #1. Query taxi trace database for trace data at a particular time, T
 
-#Time of interest:
-T_date = dt.datetime(2014,2,3,12,30,25)
-T_unix = int(T_date.timestamp())
-t_margin = 30 #in seconds..., i.e. a minute eitherside??? note taxi_id = 8 produces interesting...
-t_mini_margin = 2 # seconds either side, where we accept the current result
-
 #Connection to database
 connect_str = "dbname ='mike_romedata' user='postgres' host='localhost' password='postgres'"
 connection = psycopg2.connect(connect_str)
 
 # probably start the main loop here... for seconds in day...
 #fur mike-pc
-execution_str = ("SELECT taxi_id,unix_ts,latitude,longitude,x,y FROM rome_taxi_trace WHERE unix_ts BETWEEN %s AND %s " % (str(T_unix-t_margin),str(T_unix+t_margin)))
+#execution_str = ("SELECT taxi_id,unix_ts,latitude,longitude,x,y FROM rome_taxi_trace WHERE unix_ts BETWEEN %s AND %s " % (str(T-t_margin),str(T+t_margin)))
 
-
-start_time = dt.datetime(2014,2,3,6,0,0)
+#Time of interest:
+start_time = dt.datetime(2014,2,26,0,0,15)
 Tstart_unix = int(start_time.timestamp())
 
 T_search_times = list(range(Tstart_unix,Tstart_unix+(60*60*13),30)) #search for 14 hours? at every 30 seconds, this is a lot of queries... moving on...
@@ -129,12 +131,14 @@ t_accept = 1 #second either side? just use this value for position
 
 #WARNING: SHITTY BUG.... 
 ############### due to fuck up at 1391432070
-problem_T = 1391432100
-T_search_times = list(range(problem_T,Tstart_unix+(60*60*13),30))
+#problem_T = 1391432100
+#T_search_times = list(range(problem_T,Tstart_unix+(60*60*13),30))
 #################### 
 num_real_connections = []
 num_unreal_connections = []
 total_conns = []
+D_min = 15 # 15 #minimum distance in metres actually worth interpolating...
+
 
 for T in T_search_times:
 
@@ -142,6 +146,12 @@ for T in T_search_times:
     #2. Quick filter, db data to pandas dataframe
     taxidf = pdsql.read_sql_query(execution_str,connection)
     taxidf = taxidf.drop_duplicates() #removes duplicates, an ongoing problem.
+
+
+    #somewhere in this mess, someone should fucking snap all taxi trace points to the underlying road network
+    # simple filtering
+    # osrm only snaps one co-ordinate at a time... how fascinating
+    #osrm.nearest(taxidf['longitude','latitude'].tolist()])
 
     # taxis within t_mini_margin, are assumed to be correct, no further processing here
     prime_taxis = taxidf.loc[(taxidf.unix_ts>T-t_accept) & (taxidf.unix_ts<T+t_accept)]
@@ -177,7 +187,7 @@ for T in T_search_times:
             # if distance between chosen points is <D_min: pick whatever is closest
             # else: do some routing and interping between points...
             d = Straight_Line_Distance(adf2.x,adf2.y,bdf2.x,bdf2.y)
-            D_min = 10 # 15 #minimum distance in metres actually worth interpolating...
+            
             if d<D_min:
         #taxi_position = [bdf2.long1,bdf2.lat1] #maybe in future use nearest value...
                 #xT,yT = Straight_Line_Interp(adf2.x,adf2.y,adf2.unix_ts,bdf2.x,bdf2.y,bdf2.unix_ts,T)
