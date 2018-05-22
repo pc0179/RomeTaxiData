@@ -1,13 +1,9 @@
 # pc0179 on the Kboard
-# attempt to analyse an entire day of rome taxi trace data
-"""
-pick one day, 2014,2,3... 00:00 to 23:59
-for every 1s? count how many taxis 'can' talk
-- count those just within 100m of each other
-- count those within LoS + 100m of each other and compare
-"""
-import matplotlib
-matplotlib.use('Agg')
+# new attempt to refactor/clean up network_eval.py code
+
+
+#import matplotlib
+#matplotlib.use('Agg')
 
 
 import time
@@ -35,14 +31,6 @@ from shapely.geometry import Point, LineString, shape, mapping, MultiLineString
 import fiona
 import geopandas as gp
 from geopandas.tools import sjoin
-
-#osrm start-up
-#import subprocess as sp
-#test_subprocess = sp.Popen(["cd /home/elizabeth/Downloads/Italy-updated-osrm-map/"])# &&  osrm-routed centro-latest.osrm -a CH"])
-
-# this might not work
-#import os
-#os.system("cd /home/elizabeth/Downloads/Italy-updated-osrm-map/ &&  osrm-routed centro-latest.osrm -a CH")
 
 #some useful-ish functions:
 def MiniLinearDistFilter(linear_dist_mat,min_los_length,max_los_length):
@@ -110,7 +98,6 @@ def Straight_Line_Distance(x1,y1,x2,y2):
     d = ((x1-x2)**2 +(y1-y2)**2)**0.5
     return d
 
-#~--- now for some serious scripting.........................................
 #1. Query taxi trace database for trace data at a particular time, T
 
 #Connection to database
@@ -125,55 +112,61 @@ connection = psycopg2.connect(connect_str)
 start_time = dt.datetime(2014,2,2,00,0,15)
 Tstart_unix = int(start_time.timestamp())
 
-T_search_times = list(range(Tstart_unix,Tstart_unix+(60*60*13),30)) #search for 14 hours? at every 30 seconds, this is a lot of queries... moving on...
+T_search_times = list(range(Tstart_unix,Tstart_unix+(60*60*24),30)) #search for 14 hours? at every 30 seconds, this is a lot of queries... moving on...
 T_search_margin = 15 #i.e. thirty second chunks
 t_accept = 1 #second either side? just use this value for position
 
-#WARNING: SHITTY BUG.... 
-############### due to fuck up at 1391432070
-#problem_T = 1391432100
-#T_search_times = list(range(problem_T,Tstart_unix+(60*60*13),30))
-#################### 
 num_real_connections = []
 num_unreal_connections = []
 total_conns = []
-D_min = 15 # 15 #minimum distance in metres actually worth interpolating...
+D_min = 5 # 15 #minimum distance in metres actually worth interpolating...
 
 def Snap2Road(df):
-    snapped_long
-    for i in range(0,len(df)):
+    snapped_longitude = df.longitude.tolist()
+    snapped_latitude = df.latitude.tolist()
+
+    for i in range(0,len(snapped_latitude)):
         
-        snapped_result = osrm.nearest((df.longitude[i],df.latitude[i]))
-        snapped_longitude = snapped_result['waypoints'][0]['location'][0]
-        snapped_latitude = snapped_result['waypoints'][0]['location'][1]
-    return snapped_longitude, snapped_latitude
+        snapped_result = osrm.nearest((snapped_longitude[i],snapped_latitude[i]))
+        snapped_longitude[i] = snapped_result['waypoints'][0]['location'][0]
+        snapped_latitude[i] = snapped_result['waypoints'][0]['location'][1]
+    
+    df['snap_lat'] = snapped_latitude
+    df['snap_long'] = snapped_longitude
+    return df
+
+def haversine_pc(lon1,lat1,lon2,lat2):
+    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
+    dlon = lon2-lon1
+    dlat = lat2-lat1
+    a = np.sin(dlat/2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2.0)**2
+    c = 2 * np.arcsin(np.sqrt(a))
+    Hdistance = 6371e3*c  #working in metres!
+    return Hdistance
 
 
 for T in T_search_times:
+    # 2. main loop....
+    execution_str = ("SELECT taxi_id,unix_ts,latitude,longitude FROM rome_taxi_trace WHERE unix_ts BETWEEN %s AND %s " % (str(T-T_search_margin),str(T+T_search_margin))) 
 
-    execution_str = execution_str = ("SELECT taxi_id,unix_ts,latitude,longitude,x,y FROM rome_taxi_trace WHERE unix_ts BETWEEN %s AND %s " % (str(T-T_search_margin),str(T+T_search_margin))) 
-    #2. Quick filter, db data to pandas dataframe
     taxidf = pdsql.read_sql_query(execution_str,connection)
-    taxidf = taxidf.drop_duplicates() #removes duplicates, an ongoing problem.
-    
-    
-    #somewhere in this mess, someone should fucking snap all taxi trace points to the underlying road network
-    # simple filtering
-    # osrm only snaps one co-ordinate at a time... how fascinating
-    #osrm.nearest(taxidf['longitude','latitude'].tolist()])
+    taxidf = taxidf.drop_duplicates() #removes duplicates, incase....
+    #snap co-ordinates to nearest road segment, no intelligence, no map-matching, just snapping.
+    taxidf = Snap2Road(taxidf)
 
     # taxis within t_mini_margin, are assumed to be correct, no further processing here
     prime_taxis = taxidf.loc[(taxidf.unix_ts>T-t_accept) & (taxidf.unix_ts<T+t_accept)]
+
     #add values to 'final' results dataframe
-    estimate_taxis_positions = pd.DataFrame({'latitude':list(prime_taxis.latitude),'longitude':list(prime_taxis.longitude)}, index=list(prime_taxis.taxi_id))
+    estimate_taxis_positions = pd.DataFrame({'latitude':list(prime_taxis.snap_lat),'longitude':list(prime_taxis.snap_long)}, index=list(prime_taxis.taxi_id))
 
     #remove from processing dataframe those taxis who have a timestamp within t range
-    taxidf2 = taxidf.drop(taxidf[(taxidf.unix_ts>T-t_accept) & (taxidf.unix_ts<T+t_accept)].index)
+    taxidf = taxidf.drop(taxidf[(taxidf.unix_ts>T-t_accept) & (taxidf.unix_ts<T+t_accept)].index)
 
-    taxidf2['ts_diff'] = taxidf2.unix_ts-T
+    taxidf['ts_diff'] = taxidf.unix_ts-T
 
-    beforedf = taxidf2[taxidf2['unix_ts']<T]
-    afterdf = taxidf2[taxidf2['unix_ts']>T]
+    beforedf = taxidf[taxidf['unix_ts']<T]
+    afterdf = taxidf[taxidf['unix_ts']>T]
 
     before_taxi_ids = list(beforedf.taxi_id.unique())
     after_taxi_ids = list(afterdf.taxi_id.unique())
@@ -184,62 +177,65 @@ for T in T_search_times:
     apprx_txi_long1 = []
     apprx_txi_id = []
 
+
     for taxi_id in taxi_ids:
 
-        bdf = beforedf[beforedf['taxi_id']==taxi_id] #taxi_ids[8]]
-        adf = afterdf[afterdf['taxi_id']==taxi_id] #taxi_ids[8]]
+        bdf = beforedf[beforedf['taxi_id']==taxi_id]
+        adf = afterdf[afterdf['taxi_id']==taxi_id]
 
 
-        if (len(adf)+len(bdf))>2:
-		
-            bdf2 = bdf.loc[bdf['ts_diff'].idxmax()]
-            adf2 = adf.loc[adf['ts_diff'].idxmin()]
-            # maybe somewhere about here, need to make some checks
-            # if distance between chosen points is <D_min: pick whatever is closest
-            # else: do some routing and interping between points...
-            d = Straight_Line_Distance(adf2.x,adf2.y,bdf2.x,bdf2.y)
-            
-            if d<D_min:
-        #taxi_position = [bdf2.long1,bdf2.lat1] #maybe in future use nearest value...
-                #xT,yT = Straight_Line_Interp(adf2.x,adf2.y,adf2.unix_ts,bdf2.x,bdf2.y,bdf2.unix_ts,T)
-                apprx_txi_lat1.append(bdf2.latitude)
-                apprx_txi_long1.append(bdf2.longitude)
+ #       if (len(adf)+len(bdf))>2:
+#            bdf2 = bdf.loc[bdf['ts_diff'].idxmax()]
+#            adf2 = adf.loc[adf['ts_diff'].idxmin()]
+            #d = Straight_Line_Distance(adf2.x,adf2.y,bdf2.x,bdf2.y)
+            #d2 = haversine_pc(adf2.longitude,adf2.latitude, bdf2.longitude, bdf2.latitude)
+
+#        else:
+#            bdf2 = bdf
+#            adf2 = adf
+        bdf2 = bdf.loc[bdf['ts_diff'].idxmax()]
+        adf2 = adf.loc[adf['ts_diff'].idxmin()]            
+        d3 = haversine_pc(adf2.snap_long, adf2.snap_lat,bdf2.snap_long,bdf2.snap_lat)
+        # d3 = haversine_pc(adf2.snap_long.values[0], adf2.snap_lat.values[0],bdf2.snap_long.values[0],bdf2.snap_lat.values[0])
+
+        if d3<=D_min:
+            apprx_txi_lat1.append(bdf2.latitude)
+            apprx_txi_long1.append(bdf2.longitude)
+            apprx_txi_id.append(taxi_id)
+
+        else:
+            link_data, route_nodes  = Route_Osrm(bdf2.longitude,bdf2.latitude,adf2.longitude,adf2.latitude,bdf2.unix_ts,adf2.unix_ts)
+            #this is a rather ugly fix, to the problem of null routes, given very short distances between points
+            if link_data.distance[0] <D_min:
+                apprx_txi_lat1.append(route_nodes.lat[0])
+                apprx_txi_long1.append(route_nodes.long[0])
                 apprx_txi_id.append(taxi_id)
-
-
             else: 
-                link_data, route_nodes  = Route_Osrm(bdf2.longitude,bdf2.latitude,adf2.longitude,adf2.latitude,bdf2.unix_ts,adf2.unix_ts)
-                #this is a rather ugly fix, to the problem of null routes, given very short distances between points
-                if link_data.distance[0] <D_min:
-                    apprx_txi_lat1.append(route_nodes.lat[0])
-                    apprx_txi_long1.append(route_nodes.long[0])
-                    apprx_txi_id.append(taxi_id)
-                else: 
-                    a = link_data[link_data.dur_cumsum>T].dur_cumsum.idxmin()
-	    # herein at a, lies an interesting problem. There are occassions where the vehicle travels exceedingly slowly, therefore it's start and end time  do not match the times predicted by osrm (to get from A-->B), i.e. osrm_generated_timestamp_at_B < actual timestamp at b, therefore need to think about scaling, such that the duration cumsum takes into account the discrepency between actuall_end_timestamp and the one predicted by osrm.
-                    b = a+1
+                a = link_data[link_data.dur_cumsum>T].dur_cumsum.idxmin()
+    # herein at a, lies an interesting problem. There are occassions where the vehicle travels exceedingly slowly, therefore it's start and end time  do not match the times predicted by osrm (to get from A-->B), i.e. osrm_generated_timestamp_at_B < actual timestamp at b, therefore need to think about scaling, such that the duration cumsum takes into account the discrepency between actuall_end_timestamp and the one predicted by osrm.
+                b = a+1
 
-                    x1 = route_nodes['long'][a]
-                    y1 = route_nodes['lat'][a]
-                    if a==0:
-                        t1 = link_data['dur_cumsum'][a]-link_data.duration[a]
-                    else:
-                        t1 = link_data['dur_cumsum'][a-1]
+                x1 = route_nodes['long'][a]
+                y1 = route_nodes['lat'][a]
+                if a==0:
+                    t1 = link_data['dur_cumsum'][a]-link_data.duration[a]
+                else:
+                    t1 = link_data['dur_cumsum'][a-1]
 
-                    x2 = route_nodes['long'][b]
-                    y2 = route_nodes['lat'][b]
-                    t2 = link_data['dur_cumsum'][a]
+                x2 = route_nodes['long'][b]
+                y2 = route_nodes['lat'][b]
+                t2 = link_data['dur_cumsum'][a]
 
 
-                    xT,yT = Straight_Line_Interp(x1,y1,t1,x2,y2,t2,T)
+                xT,yT = Straight_Line_Interp(x1,y1,t1,x2,y2,t2,T)
 
-                    apprx_txi_lat1.append(yT)
-                    apprx_txi_long1.append(xT)
-                    apprx_txi_id.append(taxi_id)
+                apprx_txi_lat1.append(yT)
+                apprx_txi_long1.append(xT)
+                apprx_txi_id.append(taxi_id)                    
 
 
 
-    #4. results from loop, estimate linear distance between taxis for initial sorting...
+#4. results from loop, estimate linear distance between taxis for initial sorting...
     # regards Line of Sight (LoS) model
     apprx_txi_pos_df = pd.DataFrame({'latitude':apprx_txi_lat1,'longitude':apprx_txi_long1}, index=apprx_txi_id) #uses taxi id as index... could be interesting
 
@@ -317,28 +313,13 @@ plt.plot(time_4_plot,num_real_connections,'-*k',time_4_plot,num_unreal_connectio
 #plt.plot(T_search_times[0:len(total_conns)]-Tstart_unix,num_real_connections,'*k',T_search_times[0:len(total_conns)]-Tstart_unix,num_unreal_connections,'ob')
 plt.xlabel('Time/s')
 plt.ylabel('Number of poten. conns. between taxis')
-plt.savefig('taxi_conns_1day_2.pdf', dpi=400)
-
-#"""
-#0. define time slots/sample windows for processsssing
-#1. query db for taxis within defined time slot
-#2. FILTER
-#    z) remove duplicates...
-#    a) taxis within a second of T ==> just use their current position
-#    b) taxis whose position does not change between T-t and T+t, use that posision... 
-#    c) map-match to road segment? or does route accomplish this already?...
-#    d) maybe should check if points are within a buliding to start?... 
+plt.savefig('taxi_conns_month_%s_day_%s.pdf' % (str(start_time.month),str(start_time.day)), dpi=400)
 
 
-#once nearest taxis are established, then run LoS model
-#- how many taxis can actually (LoS) communicate at that particular second?
-#- how many can't communicate (NoLoS) but, are within 100m range at time, T?
-#- number of closest commuicable neighbours?
-
-#note st_intersects does not seem to return a True/False statement... instead returns number of buildings (i think)... would it be faster with T/F instead?
-#note iloc returns literal position within pd.df, whereas loc uses the index provided (i.e. the taxi_ids in some cases...)
-
-#just ran.
-#very slow. around 5-10mins for 90mins-ish trace data analysis...
-#once again, problems when link_data = 0 (i.e has no values) line 182, d =13 metres, maybe need to up it....
-#"""
+"""
+1. query database for taxis...
+2. snap/map-match to road network
+3. if distance either side of T < d,
+    yes -> interpolate for T
+    no -> route between points, then interpolate for T
+"""
