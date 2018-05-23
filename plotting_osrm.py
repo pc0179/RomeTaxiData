@@ -63,7 +63,7 @@ def Snap2Road(longitude,latitude):
 
 #a = [taxidf.latitude[taxidf.taxi_id==255].value,taxidf.longitude[taxidf.taxi_id==255].value]
 
-snapped_long, snapped_lat = Snap2Road(taxidf.latitude[taxidf.taxi_id==taxi_id].tolist(),taxidf.longitude[taxidf.taxi_id==taxi_id].tolist())
+snapped_long, snapped_lat = Snap2Road(taxidf.longitude[taxidf.taxi_id==taxi_id].tolist(),taxidf.latitude[taxidf.taxi_id==taxi_id].tolist())
 
 
 # map-matching
@@ -72,20 +72,83 @@ snapped_long, snapped_lat = Snap2Road(taxidf.latitude[taxidf.taxi_id==taxi_id].t
 
 gps_subset = taxidf[taxidf.taxi_id==taxi_id].sort_values('unix_ts')
 
-gps_positions = [tuple(x) for x in gps_subset[['latitude','longitude']].values]
+gps_positions = [tuple(x) for x in gps_subset[['longitude','latitude']].values]
+timestamps2match = gps_subset.unix_ts.tolist()
+
 #mpmatched_points = osrm.match(gps_positions, overview="simplified", timestamps=gps_subset.unix_ts.tolist(), radius=None)
 
-from polyline.codec import PolylineCodec
-from polyline import encode as polyline_encode
-atit = polyline.encode(gps_positions,6)
+#atit = polyline.encode(gps_positions,6)
 
-mpmatched_points = osrm.match(atit, overview="simplified", radius=None)
 #mpmatched_points = osrm.match(atit, overview="simplified", timestamps=gps_subset.unix_ts.tolist(), radius=None)
 
-#def MapMatch2Road():
+matched_points = osrm.match(gps_positions, overview="simplified", timestamps=timestamps2match, radius=None)
 
+
+def ProcessMapMatchResults(matched_points, timestamps):
+
+    matched_longs = []
+    matched_lats = []
+    nobody_index = []
+    matched_ts = []
+
+    for i in range(0,len(matched_points['tracepoints'])):
+
+        if matched_points['tracepoints'][i] is None:
+            nobody_index.append(i)
+        else:
+            matched_ts.append(timestamps[i])
+            matched_longs.append(matched_points['tracepoints'][i]['location'][0])
+            matched_lats.append(matched_points['tracepoints'][i]['location'][1])
+
+    return matched_longs, matched_lats, matched_ts, nobody_index
+
+matched_longs, matched_lats, matched_ts, nobody_index = ProcessMapMatchResults(matched_points, timestamps2match)
+
+
+
+# routing
+
+route_result = osrm.simple_route(list(gps_positions[0]),list(gps_positions[-1]),output='full',overview='full',geometry='polyline',steps='True',annotations='true')
+
+encoded_polyline = route_result['routes'][0]['geometry']
+route_nodesdf = pd.DataFrame(polyline.decode(encoded_polyline), columns=['latitude','longitude'])
+
+
+# plots.
+
+plt.figure()
+plt.plot(gps_subset.longitude.tolist(),gps_subset.latitude.tolist(),'-*k', label=('raw taxi:%i data' % (taxi_id)))
+plt.plot(snapped_long, snapped_lat, '--sr', label='snapped to road')
+plt.plot(matched_longs,matched_lats, '-.og', label='matched trace points')
+plt.plot(route_nodesdf.longitude.tolist(),route_nodesdf.latitude.tolist(), '--db', label='fastest route')
+plt.xlabel('longitude')
+plt.ylabel('latitude')
+plt.legend(loc='upper left')
+plt.show()
+plt.savefig(('osrm_comparison_study_taxi_%s.pdf' % (str(taxi_id))), dpi=400)
 
 """
+def Route_Osrm(start_long,start_lat,target_long,target_lat,start_timestamp,target_timestamp):
+
+    route_result = osrm.simple_route([start_long,start_lat],[target_long,target_lat],output='full',overview="full", geometry='polyline',steps='True',annotations='true')
+
+    encoded_polyline = route_result['routes'][0]['geometry']
+
+#plot_route_nodes = pd.DataFrame(polyline.decode(encoded_polyline))
+
+    route_nodes = pd.DataFrame(polyline.decode(encoded_polyline), columns=['lat','long'])
+
+    link_data = pd.DataFrame({'distance':route_result['routes'][0]['legs'][0]['annotation']['distance'], 'duration': route_result['routes'][0]['legs'][0]['annotation']['duration'], 'dur_cumsum' : (((np.cumsum(route_result['routes'][0]['legs'][0]['annotation']['duration'])/np.sum(route_result['routes'][0]['legs'][0]['annotation']['duration']))*(target_timestamp-start_timestamp))+start_timestamp)})
+# this last section, allows for temporal scaling, i.e. if the start and end times don't match what
+# osrm predicts for the journey, the real time of the taxi is split in proportion to the line segments predict journey time by osrm.
+
+    return link_data, route_nodes
+
+
+link_data, route_nodes  = Route_Osrm(bdf2.longitude,bdf2.latitude,adf2.longitude,adf2.latitude,bdf2.unix_ts,adf2.unix_ts)
+
+
+
 query, import say 1 hour
 pick 1 taxi.
 raw
