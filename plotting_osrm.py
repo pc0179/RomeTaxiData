@@ -108,7 +108,7 @@ matched_longs, matched_lats, matched_ts, nobody_index = ProcessMapMatchResults(m
 
 # routing
 
-route_result = osrm.simple_route(list(gps_positions[0]),list(gps_positions[-1]),output='full',overview='full',geometry='polyline',steps='True',annotations='true')
+route_result = osrm.simple_route(list(gps_positions[0]),list(gps_positions[-1]), coord_intermediate = [gps_positions[100],gps_positions[200],gps_positions[300]],output='full',overview='full',geometry='polyline',steps='True',annotations='true')
 
 encoded_polyline = route_result['routes'][0]['geometry']
 route_nodesdf = pd.DataFrame(polyline.decode(encoded_polyline), columns=['latitude','longitude'])
@@ -116,7 +116,7 @@ route_nodesdf = pd.DataFrame(polyline.decode(encoded_polyline), columns=['latitu
 
 # plots.
 
-plt.figure()
+plt.ion()
 plt.plot(gps_subset.longitude.tolist(),gps_subset.latitude.tolist(),'-*k', label=('raw taxi:%i data' % (taxi_id)))
 plt.plot(snapped_long, snapped_lat, '--sr', label='snapped to road')
 plt.plot(matched_longs,matched_lats, '-.og', label='matched trace points')
@@ -128,6 +128,14 @@ plt.show()
 plt.savefig(('osrm_comparison_study_taxi_%s.pdf' % (str(taxi_id))), dpi=400)
 
 """
+    coord_intermediate : list of 2-floats list/tuple
+        [(x ,y), (x, y), ...] where x is longitude and y is latitude
+
+simple_route(coord_origin, coord_dest, coord_intermediate=None,
+                 alternatives=False, steps=False, output="full",
+                 geometry='polyline', overview="simplified",
+                 url_config=RequestConfig, send_as_polyline=True,annotations='true'):
+
 def Route_Osrm(start_long,start_lat,target_long,target_lat,start_timestamp,target_timestamp):
 
     route_result = osrm.simple_route([start_long,start_lat],[target_long,target_lat],output='full',overview="full", geometry='polyline',steps='True',annotations='true')
