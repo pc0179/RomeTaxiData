@@ -18,7 +18,7 @@ from sqlalchemy import create_engine
 
 #for plotting:
 import matplotlib.pyplot as plt
-
+import shapefile
 #--------------------
 
 # query/import raw taxi trace data
@@ -66,6 +66,7 @@ def Snap2Road(longitude,latitude):
 snapped_long, snapped_lat = Snap2Road(taxidf.longitude[taxidf.taxi_id==taxi_id].tolist(),taxidf.latitude[taxidf.taxi_id==taxi_id].tolist())
 
 
+
 # map-matching
 
 #gps_subset = trace_data2match[['long1','lat1']]
@@ -73,6 +74,7 @@ snapped_long, snapped_lat = Snap2Road(taxidf.longitude[taxidf.taxi_id==taxi_id].
 gps_subset = taxidf[taxidf.taxi_id==taxi_id].sort_values('unix_ts')
 
 gps_positions = [tuple(x) for x in gps_subset[['longitude','latitude']].values]
+
 timestamps2match = gps_subset.unix_ts.tolist()
 
 #mpmatched_points = osrm.match(gps_positions, overview="simplified", timestamps=gps_subset.unix_ts.tolist(), radius=None)
@@ -104,6 +106,7 @@ def ProcessMapMatchResults(matched_points, timestamps):
 
 matched_longs, matched_lats, matched_ts, nobody_index = ProcessMapMatchResults(matched_points, timestamps2match)
 
+qgis_matched_line = list(zip(matched_longs,matched_lats))
 
 
 # routing
@@ -115,8 +118,21 @@ route_nodesdf = pd.DataFrame(polyline.decode(encoded_polyline), columns=['latitu
 
 
 # plots.
-
 plt.ion()
+"""
+from mpl_toolkits.basemap import Basemap
+fig = plt.gcf()
+m = Basemap(
+	resolution = 'c',
+	projection = 'merc',
+	llcrnrlon=12.442, llcrnrlat= 41.856, urcrnrlon=12.5387, urcrnrlat= 41.928)
+
+#(12.442 41.856, 12.5387 41.928, 12.442 41.928, 12.5387 41.856, 12.442 41.856)
+road_shp_file = '/home/elizabeth/Downloads/rome_only_osm_data/shp_city_rome/shape/roads'
+m.readshapefile(road_shp_file, 'roads', drawbounds = True, color='grey')
+"""
+
+
 plt.plot(gps_subset.longitude.tolist(),gps_subset.latitude.tolist(),'-*k', label=('raw taxi:%i data' % (taxi_id)))
 plt.plot(snapped_long, snapped_lat, '--sr', label='snapped to road')
 plt.plot(matched_longs,matched_lats, '-.og', label='matched trace points')
@@ -124,10 +140,75 @@ plt.plot(route_nodesdf.longitude.tolist(),route_nodesdf.latitude.tolist(), '--db
 plt.xlabel('longitude')
 plt.ylabel('latitude')
 plt.legend(loc='upper left')
-plt.show()
+#plt.show()
 plt.savefig(('osrm_comparison_study_taxi_%s.pdf' % (str(taxi_id))), dpi=400)
 
+
+#import shapefile
+
+# write the polyline shapefile
+#raw trace data
+gps_pos_list = [list(x) for x in gps_subset[['longitude','latitude']].values]
+w = shapefile.Writer(shapefile.POLYLINE)
+w.field('label') 
+w.line(parts=([gps_pos_list]))
+w.record('a')
+w.save('raw_trace_line')
+
+# matched trace data
+
+matched_line_2_shp = [[i,j] for i,j in zip(matched_longs,matched_lats)]
+w = shapefile.Writer(shapefile.POLYLINE)
+w.field('label') 
+w.line(parts=([matched_line_2_shp]))
+w.record('a')
+w.save('matched_trace_line')
+
+# route trace data
+route_line_2_shp = [[i,j] for i,j in zip(route_nodesdf.longitude.tolist(),route_nodesdf.latitude.tolist())]
+w = shapefile.Writer(shapefile.POLYLINE)
+w.field('label') 
+w.line(parts=([route_line_2_shp]))
+w.record('a')
+w.save('route_trace_line')
+
+# snapped trace data
+snapped_line_2_shp = [[i,j] for i,j in zip(snapped_long, snapped_lat)]
+w = shapefile.Writer(shapefile.POLYLINE)
+w.field('label') 
+w.line(parts=([snapped_line_2_shp]))
+w.record('a')
+w.save('snapped_trace_line')
+
+
+
 """
+
+w = shapefile.Writer(shapefile.POINT)
+
+for i in range(0,len(gps_positions)):
+    w.point(gps_positions[i][0],gps_positions[i][1])
+    w.record(gps_positions[i][0],gps_positions[i][1])
+w.save('raw_trace_data')
+
+w = shp.Writer(shp.POINT)
+w.field('X','F',10,5)
+w.field('Y','F',10,5) #float - needed for coordinates
+w.field('label')
+for index, row in df.iterrows():
+   w.point(row['longitud'],row['latitud'])
+   w.record(row['longitud'],row['latitud'],str(row['label']))
+w.save('resulting')
+
+
+# due to complexity/slowness of plotting shapefiles within matplotlib,
+# output instead plots to .shp files and view with QGIS + rome map-
+#https://gis.stackexchange.com/questions/119160/using-pyshp-to-create-polygon-shapefiles
+
+#w = shapefile.Writer()
+#w.point(gps_positions[0][0],gps_positions[0][1])
+
+
     coord_intermediate : list of 2-floats list/tuple
         [(x ,y), (x, y), ...] where x is longitude and y is latitude
 
