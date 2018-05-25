@@ -216,47 +216,46 @@ for taxi_id in taxidf.taxi_id:
         adf = matchedf[matchedf['ts_dff']>0].min()
         bdf = matchedf[matchedf['ts_dff']<0].max()
 
-        if adf.isnull().any() is True:
-            partial_mmatch_index = taxi_subset[taxi_subset['unix_ts']>T].min().index
-            #adf = pd.DataFrame({'mpos'=tuple([taxi_subset.longitude[partial_mmatch_index],taxi_subset.latitude[partial_mmatch_index]]),'mts'=taxi_subset.unix_ts[partial_mmatch_index]})
-            adf['ts_dff'] = adf.mts - T
-        
-        if bdf.isnull().any() is True:
-            partial_mmatch_index = taxi_subset[taxi_subset['unix_ts']<T].max().index
-            #bdf = pd.DataFrame({'mpos'=tuple([taxi_subset.longitude[partial_mmatch_index],taxi_subset.latitude[partial_mmatch_index]]),'mts'=taxi_subset.unix_ts[partial_mmatch_index]})
-            bdf['ts_dff'] = bdf.mts - T
+        #if map-matching doesn't work...
+        # complete fail? --> snap coords instead, then route?
+        if (adf.isnull().any()==True) or (bdf.isnull().any()==True):
+            taxi_pos_estimate = np.nan
 
-        d = haversine_pc(adf.mpos[0], adf.mpos[1],bdf.mpos[0],bdf.mpos[1])
-       #if adf.mpos == bdf.mpos:
-        if d<=min_dist:
-            taxi_pos_estimate = adf.mpos
+# maybe just snap? then again routing might be a bitch.
 
         else:
-            osrm_route_result = osrm.simple_route([bdf.mpos[0],bdf.mpos[1]],[adf.mpos[0],adf.mpos[1]],output='full',overview="full", geometry='polyline',steps='True',annotations='true')
-            link_data, route_nodes  = ProcessRouteResults(osrm_route_result,bdf.mts,adf.mts)
-            
-    #maybe another if statement, if link_data.dur_cumsum == T: ..., else:
-            if any(link_data.dur_cumsum<T):
-                T_index = max(link_data[link_data['dur_cumsum']<=T].index.tolist())
+
+            d = haversine_pc(adf.mpos[0], adf.mpos[1],bdf.mpos[0],bdf.mpos[1])
+           #if adf.mpos == bdf.mpos:
+            if d<=min_dist:
+                taxi_pos_estimate = adf.mpos
+
             else:
-                T_index = 0            
+                osrm_route_result = osrm.simple_route([bdf.mpos[0],bdf.mpos[1]],[adf.mpos[0],adf.mpos[1]],output='full',overview="full", geometry='polyline',steps='True',annotations='true')
+                link_data, route_nodes  = ProcessRouteResults(osrm_route_result,bdf.mts,adf.mts)
+                
+        #maybe another if statement, if link_data.dur_cumsum == T: ..., else:
+                if any(link_data.dur_cumsum<T):
+                    T_index = max(link_data[link_data['dur_cumsum']<=T].index.tolist())
+                else:
+                    T_index = 0            
 
-            x1 = route_nodes['longitude'][T_index]
-            y1 = route_nodes['latitude'][T_index]
+                x1 = route_nodes['longitude'][T_index]
+                y1 = route_nodes['latitude'][T_index]
 
-            if T_index == 0:
-                t1 = link_data['dur_cumsum'][0]-link_data.duration[T_index]
-            else:
-                t1 = link_data['dur_cumsum'][T_index-1]
+                if T_index == 0:
+                    t1 = link_data['dur_cumsum'][0]-link_data.duration[T_index]
+                else:
+                    t1 = link_data['dur_cumsum'][T_index-1]
 
 
-            x2 = route_nodes['longitude'][T_index+1]
-            y2 = route_nodes['latitude'][T_index+1]
-            t2 = link_data['dur_cumsum'][T_index]
+                x2 = route_nodes['longitude'][T_index+1]
+                y2 = route_nodes['latitude'][T_index+1]
+                t2 = link_data['dur_cumsum'][T_index]
 
-            T_longitude,T_latitude = Straight_Line_Interp(x1,y1,t1,x2,y2,t2,T)
-            
-            taxi_pos_estimate = tuple([T_longitude,T_latitude])
+                T_longitude,T_latitude = Straight_Line_Interp(x1,y1,t1,x2,y2,t2,T)
+                
+                taxi_pos_estimate = tuple([T_longitude,T_latitude])
 
     taxi_pos_at_T.append(taxi_pos_estimate)
 
@@ -265,37 +264,36 @@ taxidf['pos_at_T']=taxi_pos_at_T
 
 
 
+
 """
+when map-matching returns nulls...
+things get interesting.
+if both adf & bdf null?
+snap what ever coords available?
+then try to route anyway?
+
 #longitudes: 0
 #latitudes: 1
 
-8-12 meh work.
-12-16 no work.
-17-21 more work.
-post lunch, please be calm.
-double trouble was an 'audax' choice
-scenario 1
-query 30s of data from dbass
-drop duplicates
-find taxis with trace data either side of T
-
-for those with points either side of T
-- map match
-
-def BestTaxiPosEstimateAtT(taxi_id,adf,bdf):
-- route/&interp
-- estimate position at T
-
-return best_position_estimate_at_time_t(long,lat)
-
 import pandas as pd
 import numpy as np
-A = 3
+A = (3,2)
 B = np.nan
 
 df = pd.DataFrame({'a':A,'b':B})
 if df.isnull().any() is True:
     pandas_is_good = True
+
+
+        if adf.isnull().any() == True:
+            partial_mmatch_index = taxi_subset[taxi_subset['unix_ts']>T].min().index
+            #adf = pd.DataFrame({'mpos'=tuple([taxi_subset.longitude[partial_mmatch_index],taxi_subset.latitude[partial_mmatch_index]]),'mts'=taxi_subset.unix_ts[partial_mmatch_index]})
+            adf['ts_dff'] = adf.mts - T
+        
+        if bdf.isnull().any() == True:
+            partial_mmatch_index = taxi_subset[taxi_subset['unix_ts']<T].max().index
+            #bdf = pd.DataFrame({'mpos'=tuple([taxi_subset.longitude[partial_mmatch_index],taxi_subset.latitude[partial_mmatch_index]]),'mts'=taxi_subset.unix_ts[partial_mmatch_index]})
+            bdf['ts_dff'] = bdf.mts - T
 """
 
 
