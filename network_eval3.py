@@ -177,7 +177,8 @@ taxi_ids_after_T = taxidf[taxidf.unix_ts>=T].taxi_id.unique()
 #taxi_ids2process = set(taxi_ids_after_T).intersection(taxi_ids_before_T)
 
 taxi_ids_not2process = set(taxi_ids_after_T).symmetric_difference(taxi_ids_before_T)
-taxidf.drop(taxidf.taxi_id==taxi_ids_not2process)
+if len(taxi_ids_not2process)>0:
+    taxidf.drop(taxidf.taxi_id==taxi_ids_not2process)
 
 # this ratio is interesting, early estimates suggest window length of 30s (~91%,
 # maybe better to have 1min , 60s long windows (accept_ratio ~1ish
@@ -207,7 +208,7 @@ for taxi_id in taxidf.taxi_id:
 
     if any(matchedf['mts'] == T):
         #taxi_TDF.append([matchedf[matchedf.mts==T]])
-        taxi_pos_estimate = matchedf[matchedf.mts==T].mpos
+        taxi_pos_estimate = matchedf[matchedf.mts==T].mpos.tolist()[0]
 
     else:
     # route&/interp
@@ -266,6 +267,9 @@ taxidf['pos_at_T']=taxi_pos_at_T
 
 
 """
+taxi_pos2match = [tuple(x) for x in taxi_subset[['latitude','longitude']].values]
+test_line = polyline.encode(taxi_pos2match)
+
 when map-matching returns nulls...
 things get interesting.
 if both adf & bdf null?
