@@ -202,13 +202,15 @@ connection = psycopg2.connect(connect_str)
 
 #Time of interest:
 #tuseday 4th feb 2014, 7am-7pm?
-start_time = dt.datetime(2014,2,4,7,0,15)
+#start_time = dt.datetime(2014,2,4,7,0,15)
 
+# days done so far:
 start_time = dt.datetime(2014,2,21,7,0,30)
+
 Tstart_unix = int(start_time.timestamp())
 
 T_search_times = list(range(Tstart_unix,Tstart_unix+(60*60*12),30)) #search for 12 hours? at every 30 seconds, this is a lot of queries... moving on...
-T_search_margin = 30 #i.e. 30 second chunks
+T_search_margin = 15#30 compare 60s windows with 50% overlap to 30s windows no overlap.
 t_accept = 1 #second either side? just use this value for position
 
 #num_real_connections = []
@@ -217,10 +219,18 @@ t_accept = 1 #second either side? just use this value for position
 min_dist = 5 # 15 #minimum distance in metres actually worth interpolating...
 
 RESULT_DICT = {}
+reject_taxis_pos = []
+reject_ratio = []
+
 # skeleton of main loop...
+
+import timeit
+start_script_time = timeit.default_timer()
 
 for T in T_search_times:
     #T = T_search_times[647]
+    #T = 1392967680
+    #T = 1392976200
 
     execution_str = ("SELECT taxi_id,unix_ts,latitude,longitude FROM rome_taxi_trace WHERE unix_ts BETWEEN %s AND %s " % (str(T-T_search_margin),str(T+T_search_margin))) 
 
@@ -248,14 +258,18 @@ for T in T_search_times:
     # this ratio is interesting, early estimates suggest window length of 30s (~91%,
     # maybe better to have 1min , 60s long windows (accept_ratio ~1ish
     # needs more investigation 
-    accept_ratio = 1 - len(taxi_ids_not2process)/len(taxidf.taxi_id.unique())
-    print('accept_ratio = %f' % float(accept_ratio))
+    
+    print('reject ratio = %f' % float(len(taxi_ids_not2process)/len(taxidf.taxi_id.unique())))
+    reject_ratio.append(len(taxi_ids_not2process)/len(taxidf.taxi_id.unique()))
+
 
     taxis_Tpos = []
     taxis_Tids = []
     taxi_ids_to_process = taxidf.taxi_id.unique().tolist()
     #for each trace, another loop here...
     for taxi_id in taxi_ids_to_process:
+
+        #taxi_pos_estimate = []
 
         #taxi_id = taxidf.taxi_id[31]
 
@@ -279,7 +293,7 @@ for T in T_search_times:
         
         # quickly remove those where taxi_ts = T
 
-        if (any(matchedf['mts'] == T)) and (matchedf[matchedf.mts==T].mpos.tolist()[0] is not np.nan):
+        if (any(matchedf['mts'] == T)) and (bool(np.isnan(matchedf[matchedf.mts==T].mpos.values[0][0])) is False):
             #taxi_TDF.append([matchedf[matchedf.mts==T]])
             taxi_pos_estimate = matchedf[matchedf.mts==T].mpos.tolist()[0]
 
@@ -296,6 +310,8 @@ for T in T_search_times:
             if (adf.isnull().any()==True) or (bdf.isnull().any()==True):
                 taxi_pos_estimate = None # [np.nan] #tuple([np.nan,np.nan])
 
+            #if (taxi_pos_estimate is not None) and ((bool(np.isnan(adf.mpos[0])) is True) or (bool(np.isnan(bdf.mpos[1])) is True)):
+                taxi_pos_estimate = None
             #if adf.isnull().any()==True and len(nobody_index)>0:            
                #taxi_subset[taxi_subset.unix_ts>T]            
     # maybe just snap? then again routing might be a bitch.
@@ -309,7 +325,8 @@ for T in T_search_times:
 
                 else:
                     osrm_route_result = osrm.simple_route([bdf.mpos[0],bdf.mpos[1]],[adf.mpos[0],adf.mpos[1]],output='full',overview="full", geometry='polyline',steps='True',annotations='true')
-                    link_data, route_nodes  = ProcessRouteResults(osrm_route_result,bdf.mts,adf.mts)
+                    if type(osrm_route_result) is str: taxi_pos_estimate = None
+                    else: link_data, route_nodes  = ProcessRouteResults(osrm_route_result,bdf.mts,adf.mts)
                     
             #maybe another if statement, if link_data.dur_cumsum == T: ..., else:
                     if any(link_data.dur_cumsum<T):
@@ -334,11 +351,12 @@ for T in T_search_times:
                     
                     taxi_pos_estimate = tuple([T_longitude,T_latitude])
 
-        if taxi_pos_estimate is not None:
+        if taxi_pos_estimate is not None and (bool(np.isnan(taxi_pos_estimate[0])) is False) and (bool(np.isinf(taxi_pos_estimate)[0]) is False):
             taxis_Tpos.append(taxi_pos_estimate)
             taxis_Tids.append(taxi_id)
 
     print('succesfull spatial estimation = %f' % (float(len(taxis_Tids)/len(taxi_ids_to_process))))
+    reject_taxis_pos.append(1 - float(len(taxis_Tids)/len(taxi_ids_to_process)))
 
 
 
@@ -392,20 +410,30 @@ for T in T_search_times:
 
 
 
-    taxiAid, taxiBid, Alonglat, Blonglat, Hdist = zip(*taxis_nolos)
-    RESULT_DF = pd.DataFrame({'taxiAid':taxiAid,'taxiBid':taxiBid,'Alonglat':Alonglat,'Blonglat':Blonglat,'Hdist':Hdist,'num_buildings':num_buildings})
+    if len(taxis_nolos)>0: 
+        taxiAid, taxiBid, Alonglat, Blonglat, Hdist = zip(*taxis_nolos)
+        RESULT_DF = pd.DataFrame({'taxiAid':taxiAid,'taxiBid':taxiBid,'Alonglat':Alonglat,'Blonglat':Blonglat,'Hdist':Hdist,'num_buildings':num_buildings})
 
 
 
     RESULT_DICT[T]=RESULT_DF
-    print('current search time: %i completion ratio: %f' % (T, ((T_search_times[-1]-T)/T_search_margin)))
+    print('current search time: %i iterations left: %f' % (T, ((T_search_times[-1]-T)/T_search_margin)))
 
 
 # to save resulting HUGE dict... using python pickle...
 
 import pickle
-with open('early_taxi_result.pickle','wb') as handle:
+with open('30S_windows_no_overlap_result.pickle','wb') as handle:
     pickle.dump(RESULT_DICT, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+stop_script_time = timeit.default_timer()
+total_script_running_time = stop_script_time - start_script_time
+
+mins, secs = divmod(total_time, 60)
+hours, mins = divmod(mins, 60)
+
+print("Total running time: %d:%d:%d.\n" % (hours, mins, secs))
 
 
 # test plot since 150+ buildings seems a tad much for 31 metres...
