@@ -23,26 +23,37 @@ def neighborhood(G, node, n):
     return [node for node, length in path_lengths.items()
                     if length == n]
 
-print(neighborhood(G, 'v1', 1))
+#print(neighborhood(G, '361', 2))
 
 
 test_data = trace_network_data[timestamps[0]]
 
-#def TwoHopLife(df):
-df = test_data
-edge_pair_list = []
+def NhopLife(df,n):
+    #Input: df.cols = 'Alonglat', 'Blonglat', 'Hdist', 'num_buildings', 'taxiAid', 'taxiBid'
+    #Output: 
+    df = test_data
+    edge_pair_list = []
 
-for i in range(len(df)):
-    edge_pair_list.append(tuple([str(df.taxiAid[i]),str(df.taxiBid[i])]))
+    edge_pair_list = list(zip(df.taxiAid,df.taxiBid))
+    #for i in range(len(df)):
+    #    edge_pair_list.append(tuple([str(df.taxiAid[i]),str(df.taxiBid[i])]))
 
-G = nx.Graph()
-G.add_edges_from(edge_pair_list)
+    G = nx.Graph()
+    G.add_edges_from(edge_pair_list)
 
-node = '361'
+    taxi_nodes_list = list(G.nodes)
+    two_hop_count_list = []
+    #col_name = ('%ihop' % (n))
+    for taxi_node in taxi_nodes_list:
 
-path_lengths = nx.single_source_dijkstra_path_length(G,node)
+        path_lengths = nx.single_source_dijkstra_path_length(G,taxi_node)
+        two_hop_count_list.append(len([taxi_node for taxi_node, length in path_lengths.items() if length == n]))
+    
+    #df['2hop'] = two_hop_count_list
 
-n = 2
-func_result = [node for node, length in path_lengths.items() if length == n]
+    return two_hop_count_list
+
+CBA = NhopLife(test_data,2)
+
 
 
