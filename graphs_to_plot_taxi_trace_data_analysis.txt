@@ -1,0 +1,52 @@
+Taxi Trace Data Analysis.
+Potential list of graphs to generate.
+
+initial figures:
+- emprical CDF distributions of delay/time interval between data points of taxi location (done per taxi then aggregated)
+- number of taxis present over time/for each trace day/hour?
+- after ECDF, maybe something to highlight choice of time windows and intervals.
+- maybe an average speed distribution?
+
+
+'Results' figures:
+- number of two hop neighbours? (NoLoS vs LoS?)
+- cummulative number of connections over time (compare NoLoS vs LoS)
+- average locations of comms clusters?
+- 'disease spreading' amongst taxis? NoLoS versus LoS conditions: give a taxi an update to send to all others, how long it takes to penetrate entire network?
+- reject ratios. Important to show choice of window/sampling frequency.
+
+
+Semi Random Research Questions...
+- typical distance travelled before encountering another taxi? this could provide an interesting ratio between number of pedestrians (as a func. of route distance travelled) and number of oppurtunities to transfer data?
+- overall distance travelled per taxi?
+
+- how many extra taxis needed to get a big enough network? Num taxis versus disease propagation time? if more taxis present, does it spread faster? or takes longer due to high volume.
+
+- how long to map area using different number of taxis?
+
+- can people communicate with taxis i.e. pick two random points in a city, how long to get message across? vary with different number of taxis? How does that scale?
+
+- where to locate road side units/ where would parked cars be most useful to aid messaging/ updates
+
+--------------------
+general notes on plots....
+
+imagine scenario: taxiA has a message to transfer to location Z.
+taxiA transmits message to every taxi it meets, until (time out?) or message reaches destination?
+problem is knowing where taxis pick up and off load message to pedestrian. since I only store where they can exchange  messages...
+maybe a question of getting the message at least to the nearest 'message exchange cluster'?
+
+disease spreading protocol:
+very simple, if within LoS/NoLos range, what happens to diffusion process, how long until all taxis (or a high percentage) receive the update.
+- params. to vary, number of taxis (single day combined with multiple days...), where/when messaging/updating starts, how many taxis start with the message?, NoLoS/LoS ranges, pick within: 50-250m range
+- defining 'total' number of taxis could be odd, since number of taxis on the road varies throughout day, see initial figures.
+
+regards network size, simply counting areas might be silly.
+Have a look at how combining taxi trace data eventuially yields to higher frequency of road visits by a taxi.
+If the aim is to have a city network, spread of taxis across city is important, how often a taxi visits an area (250m*250m) is important, If I were to double number of taxis, how does this effect spread?
+Do taxis just cluster around same areas, or visit more of city,
+identify black spots for strategic parking/road-side-units.... 
+
+regards lidar mapping;
+image a scenario where each taxi has a roof top lidar unit, how many taxis/how long to reliably (at least 3+ passes per street?) map Rome?
+how quickly can updates spread amongst taxis, as in over time, how often do they re-scan streets/areas (e.g. 1 week or every two days?)
