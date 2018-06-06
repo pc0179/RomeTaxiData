@@ -136,15 +136,15 @@ CofM_longitude, CofM_latitude = CentreOfMassOfTaxis(test_data,buildings=None)
 
 # back to fucking routing/table shit.
 def RouteDistanceColumn(df):
-    df = test_data
-    i = 0
+    #df = test_data
+    #i = 0
     Rdist_list = []
     for i in range(len(df)):
 
         table_result = osrm.table([df.Alonglat[i],df.Blonglat[i]],[df.Alonglat[i],df.Blonglat[i]],ids_origin=None, ids_dest=None, output='np', minutes=False, send_as_polyline=True, annotations='distance')
 
-        if table_result == 'Bad Request': rdist = None
-
+        #if table_result == 'Bad Request': rdist = None
+        if type(table_result) is str: rdist = None
         else: rdist = int(round(table_result[table_result>0].min()))
 
         Rdist_list.append(rdist)
@@ -156,7 +156,58 @@ def RouteDistanceColumn(df):
 RouteDistanceColumn(test_data)
 
 
+
+
+
 """
+infected_list = [298]
+
+# esy now... steady... set()
+
+#for each 'data panel'/pd.dataframe, check if taxi_id in infected_list is able to communicate with another...
+
+#taxi_id_test_list = df.taxiAid.unique().tolist()
+#taxi_id_test_list.extend(df.taxiBid.tolist())
+
+taxis_ids_test = df.taxiAid
+taxis_ids_test.append(df.taxiBid)
+
+
+soon_to_be_infected = set(infected_list).intersection(taxis_ids_test.tolist())
+ 
+#might need to think this a tad more carefully.
+
+for i in len(df):
+
+if df.taxiAid[i] or df.taxiBid[i] is in infected_list:
+
+if df.taxiAid[i] is in infected_list and df.taxiBid[i] is not:
+
+    infected_list.append(df.taxiBid[i])
+
+if df.taxiBid[i] is in infected_list and df.taxiAid[i] is not:
+
+    infected_list.append(df.taxiBid[i])
+
+#if df.taxiBid[i] and df.taxiAid[i] is not in infected_list:
+#do nothing
+
+#if df.taxiBid[i] and df.taxiAid[i] is both in infected_list:
+#do nothing
+
+test_case = [df.taxiAid[i], df.taxiBid[i]]
+
+test_set = set(test_case).intersection(infected_list)
+
+if len(test_set) is 1:
+
+    # then infected must now be the 'other' taxi in test_case.
+    # the opposite of this: soon_to_be_infected = test_set.intersection(test_case)
+    infected_list.append(soon_to_be_infected)
+
+
+
+###################################################################################################################################
 
 # Returns a 3x3 distance matrix for CH:
 curl 'http://router.project-osrm.org/table/v1/driving/13.388860,52.517037;13.397634,52.529407;13.428555,52.523219?annotations=distance'
