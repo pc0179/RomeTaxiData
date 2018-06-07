@@ -1,9 +1,12 @@
 # script to load processed taxi trace data, i.e. after network_eval3.py had a bash at it...
 
+
 import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+plt.ion()
+
 
 import osrm
 
@@ -157,6 +160,85 @@ RouteDistanceColumn(test_data)
 
 
 
+def InfectionSpreadNoLoS(df,infected_list):
+#simple, but in effective, since order of pairs of taxiID's (in df) will change outcome of infected_list
+# to avoid this, only one way transmission per iteration, hence new/infection list.
+
+    new_infections = infected_list
+    for i in df.index:
+
+
+        if (df.taxiAid[i] in infected_list) and (df.taxiBid[i] not in infected_list):
+
+            new_infections.append(df.taxiBid[i])
+
+        if (df.taxiBid[i] in infected_list) and (df.taxiAid[i] not in infected_list):
+
+            new_infections.append(df.taxiAid[i])
+
+
+    return new_infections
+
+
+def InfectionSpreadLoS(df,infected_list):
+#simple, but in effective, since order of pairs of taxiID's (in df) will change outcome of infected_list
+# to avoid this, only one way transmission per iteration, hence new/infection list.
+
+    new_infections = infected_list
+    for i in df.index:
+
+        if df.num_buildings[i]<1:
+
+            if (df.taxiAid[i] in infected_list) and (df.taxiBid[i] not in infected_list):
+
+                new_infections.append(df.taxiBid[i])
+
+            if (df.taxiBid[i] in infected_list) and (df.taxiAid[i] not in infected_list):
+
+                new_infections.append(df.taxiAid[i])
+
+
+    return new_infections
+
+
+
+sorted_timestamps = sorted(trace_network_data.keys(), reverse=False)
+
+plotting_time = []
+noLoS_result = []
+LoS_result = []
+
+LoS_connections = []
+total_connections = []
+
+noLoS_infected_list = [8]
+LoS_infected_list = [8]
+
+for timestamp in sorted_timestamps:
+
+    df = trace_network_data[timestamp]
+
+    noLoS_infected_list = InfectionSpreadNoLoS(df, noLoS_infected_list)
+    LoS_infected_list = InfectionSpreadLoS(df, LoS_infected_list)
+
+    noLoS_result.append(len(noLoS_infected_list))    
+    LoS_result.append(len(LoS_infected_list))
+        
+    plotting_time.append(timestamp)
+
+    total_connections.append(len(df))
+    LoS_connections.append(len(df[df.num_buildings<1]))
+
+
+
+
+plt.plot(plotting_time,noLoS_result,'-ok', plotting_time, LoS_result, '-db',plotting_time,total_connections,'-k',plotting_time,LoS_connections, '-b')
+plt.ylabel('Number of Infected Taxis')
+plt.xlabel('Sim. Time/s')
+plt.show()
+
+
+
 
 
 """
@@ -177,33 +259,6 @@ soon_to_be_infected = set(infected_list).intersection(taxis_ids_test.tolist())
  
 #might need to think this a tad more carefully.
 
-for i in len(df):
-
-if df.taxiAid[i] or df.taxiBid[i] is in infected_list:
-
-if df.taxiAid[i] is in infected_list and df.taxiBid[i] is not:
-
-    infected_list.append(df.taxiBid[i])
-
-if df.taxiBid[i] is in infected_list and df.taxiAid[i] is not:
-
-    infected_list.append(df.taxiBid[i])
-
-#if df.taxiBid[i] and df.taxiAid[i] is not in infected_list:
-#do nothing
-
-#if df.taxiBid[i] and df.taxiAid[i] is both in infected_list:
-#do nothing
-
-test_case = [df.taxiAid[i], df.taxiBid[i]]
-
-test_set = set(test_case).intersection(infected_list)
-
-if len(test_set) is 1:
-
-    # then infected must now be the 'other' taxi in test_case.
-    # the opposite of this: soon_to_be_infected = test_set.intersection(test_case)
-    infected_list.append(soon_to_be_infected)
 
 
 
