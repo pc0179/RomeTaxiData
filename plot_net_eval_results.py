@@ -9,6 +9,8 @@ plt.ion()
 
 
 import osrm
+import networkx as nx
+
 
 # get pickle data...
 #pickle_file = '30S_windows_no_overlap_result_ver1.pickle'
@@ -17,8 +19,9 @@ import osrm
 
 #pickle_file = 'massive_combined_0_.pickle'
 
-pickle_file = '21-2-2k14_0700_1900_taxi_result.pickle'
+#pickle_file = '21-2-2k14_0700_1900_taxi_result.pickle'
 
+pickle_file = '/home/user/insyncGdrive/early_taxi_network_results/SF_taxi_win150s_every_75s.pickle'
 
 trace_network_data = pd.read_pickle(pickle_file)
 
@@ -27,10 +30,10 @@ timestamps = list(trace_network_data.keys())
 
 # crazy two hop test?
 
-import networkx as nx
-G = nx.Graph()
+
+#G = nx.Graph()
 #G.add_edges_from([('v1','v2'),('v2','v4'),('v1','v3')])
-G.add_edges_from([('v1','v2'),('v2','v3'),('v1','v3')])
+#G.add_edges_from([('v1','v2'),('v2','v3'),('v1','v3')])
 
 def neighborhood(G, node, n):
     path_lengths = nx.single_source_dijkstra_path_length(G, node)
@@ -124,8 +127,8 @@ def CentreOfMassOfTaxis(df,buildings):
     return Xcofm, Ycofm
 
 
-test_data = trace_network_data[timestamps[999]]
-CofM_longitude, CofM_latitude = CentreOfMassOfTaxis(test_data,buildings=None)
+#test_data = trace_network_data[timestamps[999]]
+#CofM_longitude, CofM_latitude = CentreOfMassOfTaxis(test_data,buildings=None)
 
 
 
@@ -156,7 +159,7 @@ def RouteDistanceColumn(df):
     return df 
 
 
-RouteDistanceColumn(test_data)
+#RouteDistanceColumn(test_data)
 
 
 
@@ -202,6 +205,9 @@ def InfectionSpreadLoS(df,infected_list):
 
 
 
+test_data = trace_network_data[1211159404]
+
+
 sorted_timestamps = sorted(trace_network_data.keys(), reverse=False)
 
 plotting_time = []
@@ -211,10 +217,18 @@ LoS_result = []
 LoS_connections = []
 total_connections = []
 
-noLoS_infected_list = [8]
-LoS_infected_list = [8]
+noLoS_infected_list = ['ayshowg']
+LoS_infected_list = ['ayshowg']
 
-for timestamp in sorted_timestamps:
+#subset of time we're interested in:
+# tuseday 20th may - wednesday 20th may 10.00-10ish ~24hours
+start_time_index = 3456
+end_time_index = start_time_index + 1152
+
+
+subset_sorted_timestamps = sorted_timestamps[start_time_index:end_time_index]
+
+for timestamp in subset_sorted_timestamps:
 
     df = trace_network_data[timestamp]
 
@@ -232,16 +246,135 @@ for timestamp in sorted_timestamps:
 
 
 
-plt.plot(plotting_time,noLoS_result,'-ok', plotting_time, LoS_result, '-db',plotting_time,total_connections,'-k',plotting_time,LoS_connections, '-b')
-plt.ylabel('Number of Infected Taxis')
-plt.xlabel('Sim. Time/s')
+#plt.plot(plotting_time,noLoS_result,'-ok', plotting_time, LoS_result, '-db',plotting_time,total_connections,'-k',plotting_time,LoS_connections, '-b')
+#plt.ylabel('Number of Infected Taxis')
+#plt.xlabel('Sim. Time/s')
+#plt.show()
+
+
+
+#plt.plot(plotting_time,noLoS_result,'-ok', plotting_time, LoS_result, '-db')
+#plt.ylabel('Number of Infected Taxis')
+#plt.xlabel('Sim. Time/s')
+#plt.show()
+
+
+###### normalised infection spreading plots.
+
+
+norm_time = (np.array(plotting_time[start_time_index:end_time_index])-plotting_time[start_time_index])/plotting_time[end_time_index]
+
+norm_time = (np.array(plotting_time)-plotting_time[0])/(plotting_time[-1]-plotting_time[0])
+
+norm_noLoS_result = np.array(noLoS_result)/max(noLoS_result)
+norm_LoS_result = np.array(LoS_result)/max(LoS_result)
+
+
+plt.plot(norm_time,norm_noLoS_result,'-ok',norm_time,norm_LoS_result,'-db')
+plt.ylabel('Ratio of Infected Taxis')
+plt.xlabel('Normalised Time')
 plt.show()
 
 
 
 
 
+####### general location/clustering of where the hell these taxis communicate with eachother
+
+
+
+LoS_points_list = []
+NOLoS_points_list = []
+
+
+for timestamp in subset_sorted_timestamps:
+
+    df = trace_network_data[timestamp]
+
+    for i in df.index:
+
+        if df.num_buildings[i]>0: NOLoS_points_list.append([[df.Alonglat[0][0],df.Alonglat[0][1]],[df.Blonglat[0][0],df.Blonglat[0][1]]])
+
+        if df.num_buildings[i]<1: LoS_points_list.append([[df.Alonglat[0][0],df.Alonglat[0][1]],[df.Blonglat[0][0],df.Blonglat[0][1]]])
+
+        
+
+import shapefile
+
+#W = shapefile.Writer(shapefile.POLYLINE)
+#W.line(parts= [[[,],[,]]])
+#W.field('NoLoS')
+#W.record('%s' % (str(
+
+
+NOLoS_pyshp = shapefile.Writer(shapefile.POLYLINE)
+LoS_pyshp = shapefile.Writer(shapefile.POLYLINE)
+
+NOLoS_field_list = []
+NOLoS_record_list = []
+
+LoS_field_list = []
+LoS_record_list = []
+
+
+for timestamp in subset_sorted_timestamps:
+    df = trace_network_data[timestamp]
+
+    dummy_record = str(timestamp)
+    for i in df.index:
+
+        if df.num_buildings[i]>0: 
+            NOLoS_lines_list.append([df.Alonglat[0][0],df.Alonglat[0][1]])
+            #NOLoS_pyshp.line(parts = [[[df.Alonglat[0][0],df.Alonglat[0][1]],[df.Blonglat[0][0],df.Blonglat[0][1]]]])
+            #NOLoS_pyshp.field('NOLoS') #,'crap','asdf')
+            #NOLoS_pyshp.record('W') #,'crfd')
+
+            NOLoS_field_list.append(str(timestamp))
+            NOLoS_record_list.append(str(timestamp))
+
+        if df.num_buildings[i]<1: 
+            LoS_pyshp.line(parts = [[[df.Alonglat[0][0],df.Alonglat[0][1]],[df.Blonglat[0][0],df.Blonglat[0][1]]]])
+
+            LoS_field_list.append(str(timestamp))
+            LoS_record_list.append(str(timestamp))
+
+            #LoS_pyshp.field('LoS') #,'morecarap','ffddd')
+            #LoS_pyshp.record('Q') #,'crap')
+            #LoS_pyshp.field('FIRST_FLD','C','40')
+            #LoS_pyshp.field('SECOND_FLD','C','40')
+            #LoS_pyshp.record('First','Line')
+            #LoS_pyshp.record('Second','Line')
+
+
+        
+
+NOLoS_pyshp.field('b')
+NOLoS_pyshp.record('a')
+NOLoS_pyshp.save('NOLoS_SF_data')
+
+LoS_pyshp.field(LoS_field_list)
+LoS_pyshp.record(LoS_record_list)
+LoS_pyshp.save('LoS_SF_data')
+
+testline = shapefile.Writer(shapefile.POLYLINE)
+testline.line(parts = [[[df.Alonglat[0][0],df.Alonglat[0][1]],[df.Blonglat[0][0],df.Blonglat[0][1]]]])
+testline.line(parts = [[[df.Alonglat[2][0],df.Alonglat[2][1]],[df.Blonglat[2][0],df.Blonglat[2][1]]]])
+testline.field('b')
+testline.record('a')
+testline.save('SF_test_line')
+
+
+
 """
+w = shapefile.Writer(shapefile.POLYLINE)
+w.line(parts=[[[1,5],[5,5],[5,1],[3,3],[1,1]]])
+w.poly(parts=[[[1,3],[5,3]]], shapeType=shapefile.POLYLINE)
+w.field('FIRST_FLD','C','40')
+w.field('SECOND_FLD','C','40')
+w.record('First','Line')
+w.record('Second','Line')
+w.save('shapefiles/test/line')
+
 infected_list = [298]
 
 # esy now... steady... set()
@@ -263,6 +396,15 @@ soon_to_be_infected = set(infected_list).intersection(taxis_ids_test.tolist())
 
 
 ###################################################################################################################################
+
+
+
+
+
+
+
+
+
 
 # Returns a 3x3 distance matrix for CH:
 curl 'http://router.project-osrm.org/table/v1/driving/13.388860,52.517037;13.397634,52.529407;13.428555,52.523219?annotations=distance'
@@ -316,6 +458,11 @@ def table(coords_src, coords_dest,
         - if output=='pandas' : a labeled DataFrame containing the time matrix in minutes,
                                 a list of snapped origin coordinates,
                                 a list of snapped destination coordinates.
+
+
+
+
+
 
 """
 
